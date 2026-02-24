@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Influencer Promotion Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <a href="/" id="site-logo">Influencer Platform</a>
+            </div>
+            <div class="nav-links">
+                <a href="#features">功能</a>
+                <a href="#how-it-works">工作原理</a>
+                <a href="#contact">联系我们</a>
+                <div class="auth-buttons">
+                    <a href="/auth/register" class="btn btn-outline">注册</a>
+                    <a href="/login" class="btn btn-primary">登录</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 英雄区域 -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 id="hero-title">影响者推广平台</h1>
+                <p id="hero-subtitle">连接品牌与优质影响者，实现高效、精准的营销推广</p>
+                <div class="hero-buttons">
+                    <a href="/auth/register" class="btn btn-primary">立即注册</a>
+                    <a href="#how-it-works" class="btn btn-outline">了解更多</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img id="hero-image" src="/static/images/hero-image.png" alt="影响者推广平台">
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能区域 -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2>平台功能</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <h3>用户管理</h3>
+                    <p>简单快捷的注册流程，完善的个人信息管理，支持多种社交账号绑定</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <h3>任务管理</h3>
+                    <p>浏览、接受和管理推广任务，实时跟踪任务状态和进度</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>数据分析</h3>
+                    <p>详细的绩效指标跟踪，包括点赞、评论、分享和浏览量等数据</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-handshake"></i>
+                    </div>
+                    <h3>任务分配</h3>
+                    <p>品牌可以根据影响者的特点和受众群体，精准分配推广任务</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <h3>收益管理</h3>
+                    <p>透明的收益计算和管理，确保影响者获得合理的回报</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>安全保障</h3>
+                    <p>多重安全措施，保障用户数据和交易安全</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 工作原理区域 -->
+    <section id="how-it-works" class="how-it-works">
+        <div class="container">
+            <h2>工作原理</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>注册并完善资料</h3>
+                    <p>创建账户并填写个人信息，绑定社交账号，设置专业领域</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>浏览并接受任务</h3>
+                    <p>根据自己的兴趣和专业领域，浏览并接受适合的推广任务</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>完成任务并提交</h3>
+                    <p>按照任务要求完成推广内容，提交任务链接</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <h3>获取收益</h3>
+                    <p>任务审核通过后，根据绩效指标获得相应的收益</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 联系我们区域 -->
+    <section id="contact" class="contact">
+        <div class="container">
+            <h2>联系我们</h2>
+            <div class="contact-content">
+                <div class="contact-form">
+                    <form action="/contact" method="POST">
+                        <div class="form-group">
+                            <label for="name">姓名</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">邮箱</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="subject">主题</label>
+                            <input type="text" id="subject" name="subject" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="message">消息</label>
+                            <textarea id="message" name="message" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">发送消息</button>
+                    </form>
+                </div>
+                <div class="contact-info">
+                    <h3>联系方式</h3>
+                    <p>如果您有任何问题或建议，欢迎随时联系我们</p>
+                    <div class="contact-details">
+                        <div class="contact-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>北京市朝阳区建国路88号</span>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-phone"></i>
+                            <span>+86 10 8888 8888</span>
+                        </div>
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <span>info@influencer-platform.com</span>
+                        </div>
+                    </div>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-weixin"></i></a>
+                        <a href="#"><i class="fab fa-weibo"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>关于我们</h3>
+                    <p>我们是一家专注于影响者营销的科技公司，致力于为品牌和影响者搭建高效、透明的合作平台</p>
+                </div>
+                <div class="footer-section">
+                    <h3>快速链接</h3>
+                    <ul>
+                        <li><a href="#features">功能</a></li>
+                        <li><a href="#how-it-works">工作原理</a></li>
+                        <li><a href="#contact">联系我们</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>法律信息</h3>
+                    <ul>
+                        <li><a href="#">隐私政策</a></li>
+                        <li><a href="#">服务条款</a></li>
+                        <li><a href="#">Cookie政策</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>订阅更新</h3>
+                    <p>订阅我们的邮件，获取最新的平台动态和营销趋势</p>
+                    <form class="subscribe-form">
+                        <input type="email" placeholder="您的邮箱地址">
+                        <button type="submit">订阅</button>
+                    </form>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Influencer Promotion Platform. 保留所有权利</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

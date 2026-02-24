@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务 - Influencer Promotion Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100vh;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+        }
+        .sidebar-header { margin-bottom: 40px; }
+        .sidebar-header h2 { color: #007bff; font-size: 20px; }
+        .sidebar-nav { list-style: none; }
+        .sidebar-nav li { margin-bottom: 10px; }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .sidebar-nav a:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .sidebar-nav a.active { background-color: #007bff; }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+
+        .tasks-container { max-width: 1200px; margin: 0 auto; }
+        .tasks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 12px;
+        }
+        .tasks-header h1 { color: #333; }
+
+        .filter-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-select,
+        .search-input {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+        }
+
+        .search-input { width: 240px; }
+
+        .alert {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .alert.error { background: #f8d7da; color: #721c24; }
+        .alert.success { background: #d4edda; color: #155724; }
+
+        .tasks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .task-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .task-body { padding: 18px; }
+        .task-platform {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #e3f2fd;
+            color: #1976d2;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .task-title { font-size: 18px; color: #333; margin-bottom: 8px; }
+        .task-description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 62px;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #f0f0f0;
+            padding: 12px 18px;
+        }
+        .task-reward { font-size: 18px; font-weight: 700; color: #f57c00; }
+        .task-created { font-size: 12px; color: #777; }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding: 14px 18px 18px;
+        }
+
+        .btn {
+            padding: 9px 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.65;
+            transform: none;
+            box-shadow: none;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0069d9; }
+        .btn-outline { background: white; color: #007bff; border: 1px solid #007bff; }
+        .btn-outline:hover { background: #007bff; color: white; }
+
+        .empty-state {
+            background: white;
+            border-radius: 10px;
+            padding: 28px;
+            text-align: center;
+            color: #666;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            width: min(760px, 100%);
+            max-height: 90vh;
+            overflow: auto;
+            padding: 20px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .modal-close {
+            border: none;
+            background: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .detail-section {
+            margin-bottom: 14px;
+        }
+        .detail-section h4 {
+            margin-bottom: 6px;
+            color: #333;
+            font-size: 14px;
+        }
+        .detail-section p {
+            margin: 0;
+            color: #555;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .attachment-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .attachment-list a {
+            color: #007bff;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .attachment-list a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 200px; }
+            .main-content { margin-left: 200px; }
+            .tasks-header { flex-direction: column; align-items: flex-start; }
+            .search-input { width: 100%; }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+            }
+            .main-content { margin-left: 0; }
+            .tasks-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h2>Influencer Platform</h2>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="/dashboard"><i class="fas fa-tachometer-alt"></i>仪表盘</a></li>
+        <li><a href="/tasks" class="active"><i class="fas fa-tasks"></i>任务</a></li>
+        <li><a href="/assignments"><i class="fas fa-clipboard-list"></i>我的任务</a></li>
+        <li><a href="/profile"><i class="fas fa-user"></i>个人资料</a></li>
+        <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div class="tasks-container">
+        <div class="tasks-header">
+            <h1>可用任务</h1>
+            <div class="filter-container">
+                <select id="platform-filter" class="filter-select">
+                    <option value="all">所有平台</option>
+                    <option value="douyin">抖音</option>
+                    <option value="xiaohongshu">小红书</option>
+                    <option value="weibo">微博</option>
+                </select>
+                <input id="task-search" class="search-input" type="text" placeholder="搜索任务标题或描述">
+            </div>
+        </div>
+
+        <div id="alert" class="alert"></div>
+        <div id="tasks-grid" class="tasks-grid"></div>
+        <div id="empty-state" class="empty-state" style="display:none;">暂无匹配任务</div>
+    </div>
+</div>
+
+<div id="task-detail-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="detail-title">任务详情</h3>
+            <button class="modal-close" id="close-detail">&times;</button>
+        </div>
+        <div class="detail-section">
+            <h4>平台</h4>
+            <p id="detail-platform">-</p>
+        </div>
+        <div class="detail-section">
+            <h4>基础奖励</h4>
+            <p id="detail-reward">-</p>
+        </div>
+        <div class="detail-section">
+            <h4>任务描述</h4>
+            <p id="detail-description">-</p>
+        </div>
+        <div class="detail-section">
+            <h4>执行要求</h4>
+            <p id="detail-instructions">-</p>
+        </div>
+        <div class="detail-section">
+            <h4>任务附件</h4>
+            <div id="detail-attachments">-</div>
+        </div>
+        <div class="detail-section">
+            <h4>发布时间</h4>
+            <p id="detail-created">-</p>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/client.js"></script>
+<script>
+    let allTasks = [];
+    let taskAssignmentMap = new Map();
+    let isAdminView = false;
+
+    function showAlert(message, type = "error") {
+        const alert = document.getElementById("alert");
+        alert.textContent = message;
+        alert.className = `alert ${type}`;
+        alert.style.display = "block";
+    }
+
+    function clearAlert() {
+        const alert = document.getElementById("alert");
+        alert.style.display = "none";
+    }
+
+    function normalizePlatform(value) {
+        const v = (value || "").toLowerCase();
+        if (v === "douyin" || v === "dy" || v === "抖音") return "douyin";
+        if (v === "xiaohongshu" || v === "xhs" || v === "小红书") return "xiaohongshu";
+        if (v === "weibo" || v === "wb" || v === "微博") return "weibo";
+        return v;
+    }
+
+    function renderTasks() {
+        const filter = document.getElementById("platform-filter").value;
+        const keyword = document.getElementById("task-search").value.trim().toLowerCase();
+
+        const filtered = allTasks.filter((task) => {
+            const platformOk = filter === "all" || normalizePlatform(task.platform) === filter;
+            const searchable = `${task.title || ""} ${task.description || ""}`.toLowerCase();
+            const keywordOk = !keyword || searchable.includes(keyword);
+            return platformOk && keywordOk;
+        });
+
+        const grid = document.getElementById("tasks-grid");
+        const emptyState = document.getElementById("empty-state");
+
+        if (filtered.length === 0) {
+            grid.innerHTML = "";
+            emptyState.style.display = "block";
+            return;
+        }
+
+        emptyState.style.display = "none";
+        grid.innerHTML = filtered
+            .map((task) => {
+                const assignment = taskAssignmentMap.get(task.id);
+                const taken = Boolean(assignment);
+                const acceptLabel = isAdminView
+                    ? "管理员视图"
+                    : (taken ? `已接单(${assignmentStatusLabel(assignment.status)})` : "接受任务");
+                const acceptDisabled = isAdminView || taken;
+
+                return `
+                    <div class="task-card">
+                        <div class="task-body">
+                            <span class="task-platform">${escapeHtml(platformLabel(task.platform))}</span>
+                            <h3 class="task-title">${escapeHtml(task.title)}</h3>
+                            <p class="task-description">${escapeHtml(task.description || "")}</p>
+                        </div>
+                        <div class="task-meta">
+                            <div class="task-reward">¥${Number(task.base_reward || 0).toFixed(2)}</div>
+                            <div class="task-created">发布: ${escapeHtml(formatDateTime(task.created_at))}</div>
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn btn-outline" data-action="detail" data-id="${task.id}">查看详情</button>
+                            <button class="btn btn-primary" data-action="accept" data-id="${task.id}" ${acceptDisabled ? "disabled" : ""}>${escapeHtml(acceptLabel)}</button>
+                        </div>
+                    </div>
+                `;
+            })
+            .join("");
+    }
+
+    async function loadData() {
+        clearAlert();
+        const me = await apiRequest("/users/me");
+        isAdminView = me.role === "admin";
+
+        const [tasks, assignments] = isAdminView
+            ? await Promise.all([
+                apiRequest("/admin/tasks"),
+                apiRequest("/admin/assignments"),
+            ])
+            : await Promise.all([
+                apiRequest("/tasks/"),
+                apiRequest("/assignments/me"),
+            ]);
+
+        allTasks = isAdminView
+            ? (tasks || []).filter((task) => task.status === "published")
+            : (tasks || []);
+        taskAssignmentMap = new Map();
+        (assignments || []).forEach((item) => {
+            if (item && item.task && item.status !== "cancelled") {
+                taskAssignmentMap.set(item.task.id, item);
+            }
+        });
+
+        if (isAdminView) {
+            showAlert("当前为管理员视图：可查看任务详情，不可直接接单。", "success");
+        }
+        renderTasks();
+    }
+
+    function openDetail(task) {
+        document.getElementById("detail-title").textContent = task.title || "任务详情";
+        document.getElementById("detail-platform").textContent = platformLabel(task.platform);
+        document.getElementById("detail-reward").textContent = `¥${Number(task.base_reward || 0).toFixed(2)}`;
+        document.getElementById("detail-description").textContent = task.description || "-";
+        document.getElementById("detail-instructions").textContent = task.instructions || "-";
+        const attachments = Array.isArray(task.attachments)
+            ? task.attachments.filter(
+                (item) => typeof item === "string" && /^https?:\/\/\S+$/i.test(item.trim())
+            )
+            : [];
+        const attachmentsEl = document.getElementById("detail-attachments");
+        if (!attachments.length) {
+            attachmentsEl.textContent = "无";
+            attachmentsEl.className = "";
+        } else {
+            attachmentsEl.innerHTML = attachments
+                .map((url, index) => {
+                    const safeUrl = escapeHtml(url);
+                    return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">附件${index + 1}: ${safeUrl}</a>`;
+                })
+                .join("");
+            attachmentsEl.className = "attachment-list";
+        }
+        document.getElementById("detail-created").textContent = formatDateTime(task.created_at);
+        document.getElementById("task-detail-modal").style.display = "flex";
+    }
+
+    function closeDetail() {
+        document.getElementById("task-detail-modal").style.display = "none";
+    }
+
+    async function acceptTask(taskId) {
+        clearAlert();
+        const task = allTasks.find((item) => item.id === taskId);
+        if (!task) return;
+
+        await apiRequest(`/tasks/${taskId}/accept`, { method: "POST" });
+        showAlert(`任务“${task.title}”已接受`, "success");
+        await loadData();
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        requireAuthRedirect();
+
+        document.getElementById("logout-link").addEventListener("click", () => {
+            clearAuth();
+        });
+
+        document.getElementById("platform-filter").addEventListener("change", renderTasks);
+        document.getElementById("task-search").addEventListener("input", renderTasks);
+
+        document.getElementById("tasks-grid").addEventListener("click", async (event) => {
+            const button = event.target.closest("button[data-action]");
+            if (!button) return;
+
+            const id = Number(button.dataset.id);
+            const task = allTasks.find((item) => item.id === id);
+            if (!task) return;
+
+            if (button.dataset.action === "detail") {
+                openDetail(task);
+                return;
+            }
+
+            if (button.dataset.action === "accept") {
+                button.disabled = true;
+                try {
+                    await acceptTask(id);
+                } catch (error) {
+                    showAlert(error.message || "接受任务失败");
+                    button.disabled = false;
+                }
+            }
+        });
+
+        document.getElementById("close-detail").addEventListener("click", closeDetail);
+        document.getElementById("task-detail-modal").addEventListener("click", (event) => {
+            if (event.target.id === "task-detail-modal") {
+                closeDetail();
+            }
+        });
+
+        try {
+            await loadData();
+        } catch (error) {
+            showAlert(error.message || "加载任务失败");
+        }
+    });
+</script>
+</body>
+</html>

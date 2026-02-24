@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlmodel
+python-jose[cryptography]
+python-multipart
+passlib[bcrypt]
+alembic
+python-dotenv
+argon2-cffi
+oss2

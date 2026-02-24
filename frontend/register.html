@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - Influencer Promotion Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .register-container {
+            max-width: 500px;
+            margin: 80px auto;
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .register-container h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.1);
+        }
+        .social-accounts {
+            margin: 30px 0;
+        }
+        .social-accounts h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .social-account-form {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #0069d9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .login-link a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">
+                <a href="/">Influencer Platform</a>
+            </div>
+            <div class="nav-links">
+                <a href="/">首页</a>
+                <a href="/">功能</a>
+                <a href="/">定价</a>
+                <a href="/">联系我们</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="register-container">
+        <h1>注册</h1>
+        
+        <!-- 错误消息 -->
+        <div id="error-message" class="error-message" style="display: none;"></div>
+        
+        <!-- 成功消息 -->
+        <div id="success-message" class="success-message" style="display: none;"></div>
+        
+        <!-- 注册表单 -->
+        <form id="register-form" action="/api/v1/auth/register" method="post">
+            <div class="form-group">
+                <label for="email">邮箱</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">手机号</label>
+                <input type="tel" id="phone" name="phone" required>
+            </div>
+            <div class="form-group">
+                <label for="display_name">展示名</label>
+                <input type="text" id="display_name" name="display_name" required>
+            </div>
+            <div class="form-group">
+                <label for="city">城市</label>
+                <input type="text" id="city" name="city" required>
+            </div>
+            <div class="form-group">
+                <label for="category">内容领域</label>
+                <input type="text" id="category" name="category" placeholder="如：美妆、数码、母婴" required>
+            </div>
+            <div class="form-group">
+                <label for="tags">标签（英文逗号分隔）</label>
+                <input type="text" id="tags" name="tags" placeholder="beauty,short-video,live">
+            </div>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <div class="social-accounts">
+                <h3>首个社媒账号（必填）</h3>
+                <div class="social-account-form">
+                    <div class="form-group">
+                        <label for="platform">平台</label>
+                        <select id="platform" name="platform" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px;">
+                            <option value="douyin">抖音</option>
+                            <option value="xiaohongshu">小红书</option>
+                            <option value="weibo">微博</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="account_name">账号名称</label>
+                        <input type="text" id="account_name" name="account_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="account_id">账号ID</label>
+                        <input type="text" id="account_id" name="account_id" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profile_url">主页链接（可选）</label>
+                        <input type="url" id="profile_url" name="profile_url">
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">注册</button>
+        </form>
+        
+        <div class="login-link">
+            已有账号？ <a href="/login">立即登录</a>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.getElementById('register-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            const account = {
+                account_name: data.account_name,
+                account_id: data.account_id,
+                profile_url: data.profile_url || null,
+                follower_count: 0
+            };
+
+            const douyin_accounts = [];
+            const xiaohongshu_accounts = [];
+            const weibo_accounts = [];
+            if (data.platform === 'douyin') douyin_accounts.push(account);
+            if (data.platform === 'xiaohongshu') xiaohongshu_accounts.push(account);
+            if (data.platform === 'weibo') weibo_accounts.push(account);
+
+            const requestData = {
+                email: data.email,
+                username: data.email.split('@')[0], // 使用邮箱前缀作为用户名
+                password: data.password,
+                phone: data.phone,
+                display_name: data.display_name,
+                city: data.city,
+                category: data.category,
+                tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+                douyin_accounts,
+                xiaohongshu_accounts,
+                weibo_accounts
+            };
+            
+            fetch('/api/v1/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(error => {
+                        throw new Error(error.detail || '注册失败');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 显示成功消息
+                const successMessage = document.getElementById('success-message');
+                successMessage.textContent = '注册成功！请等待管理员审核后登录。';
+                successMessage.style.display = 'block';
+                
+                // 清空表单
+                document.getElementById('register-form').reset();
+                
+                // 3秒后跳转到登录页
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 3000);
+            })
+            .catch(error => {
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+            });
+        });
+        </script>
+</body>
+</html>

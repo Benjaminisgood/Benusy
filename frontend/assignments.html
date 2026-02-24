@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的任务 - Influencer Promotion Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100vh;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+        }
+        .sidebar-header { margin-bottom: 40px; }
+        .sidebar-header h2 { color: #007bff; font-size: 20px; }
+        .sidebar-nav { list-style: none; }
+        .sidebar-nav li { margin-bottom: 10px; }
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .sidebar-nav a:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .sidebar-nav a.active { background-color: #007bff; }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+
+        .assignments-container { max-width: 1200px; margin: 0 auto; }
+        .assignments-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .assignments-header h1 { color: #333; }
+
+        .status-filter {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .status-btn {
+            padding: 8px 14px;
+            border: 1px solid #ddd;
+            border-radius: 999px;
+            background: white;
+            color: #555;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .status-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .alert {
+            display: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+        .alert.error { background: #f8d7da; color: #721c24; }
+        .alert.success { background: #d4edda; color: #155724; }
+
+        .assignments-table {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 980px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+
+        th { color: #666; font-weight: 600; }
+        td { color: #333; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-accepted { background: #fff3e0; color: #f57c00; }
+        .status-submitted { background: #ede7f6; color: #5e35b1; }
+        .status-in_review { background: #e3f2fd; color: #1976d2; }
+        .status-completed { background: #e8f5e9; color: #2e7d32; }
+        .status-rejected { background: #ffebee; color: #c62828; }
+        .status-cancelled { background: #eceff1; color: #455a64; }
+
+        .sync-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #f2f2f2;
+            color: #555;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0069d9; }
+        .btn-outline { background: white; color: #007bff; border: 1px solid #007bff; }
+        .btn-outline:hover { background: #007bff; color: white; }
+        .btn-warning { background: #ef6c00; color: white; }
+        .btn-warning:hover { background: #d65f00; }
+
+        .empty-state {
+            display: none;
+            background: white;
+            border-radius: 10px;
+            padding: 28px;
+            text-align: center;
+            color: #666;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 16px;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            width: min(760px, 100%);
+            max-height: 90vh;
+            overflow: auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .modal-close {
+            border: none;
+            background: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 6px; color: #333; font-weight: 600; }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 14px;
+        }
+        .form-group textarea { min-height: 90px; resize: vertical; }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .detail-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .detail-item strong {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 200px; }
+            .main-content { margin-left: 200px; }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+            }
+            .main-content { margin-left: 0; }
+            .detail-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h2>Influencer Platform</h2>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="/dashboard"><i class="fas fa-tachometer-alt"></i>仪表盘</a></li>
+        <li><a href="/tasks"><i class="fas fa-tasks"></i>任务</a></li>
+        <li><a href="/assignments" class="active"><i class="fas fa-clipboard-list"></i>我的任务</a></li>
+        <li><a href="/profile"><i class="fas fa-user"></i>个人资料</a></li>
+        <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
+    </ul>
+</div>
+
+<div class="main-content">
+    <div class="assignments-container">
+        <div class="assignments-header">
+            <h1>我的任务记录</h1>
+            <div class="status-filter" id="status-filter">
+                <button class="status-btn active" data-status="all">全部</button>
+                <button class="status-btn" data-status="accepted">待提交</button>
+                <button class="status-btn" data-status="submitted">已提交</button>
+                <button class="status-btn" data-status="in_review">审核中</button>
+                <button class="status-btn" data-status="completed">已完成</button>
+                <button class="status-btn" data-status="rejected">已拒绝</button>
+            </div>
+        </div>
+
+        <div id="alert" class="alert"></div>
+
+        <div class="assignments-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>任务</th>
+                        <th>平台</th>
+                        <th>分配时间</th>
+                        <th>状态</th>
+                        <th>同步状态</th>
+                        <th>收益</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="assignments-body"></tbody>
+            </table>
+        </div>
+
+        <div id="empty-state" class="empty-state">暂无匹配任务</div>
+    </div>
+</div>
+
+<div id="submit-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>提交任务链接</h3>
+            <button class="modal-close" data-close="submit-modal">&times;</button>
+        </div>
+        <form id="submit-form">
+            <input type="hidden" id="submit-assignment-id">
+            <div class="form-group">
+                <label for="submit-post-link">帖子链接</label>
+                <input id="submit-post-link" type="url" placeholder="https://..." required>
+            </div>
+            <button class="btn btn-primary" type="submit">确认提交</button>
+        </form>
+    </div>
+</div>
+
+<div id="manual-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>手工补录数据</h3>
+            <button class="modal-close" data-close="manual-modal">&times;</button>
+        </div>
+        <form id="manual-form">
+            <input type="hidden" id="manual-assignment-id">
+            <div class="detail-grid">
+                <div class="form-group">
+                    <label for="manual-likes">点赞</label>
+                    <input id="manual-likes" type="number" min="0" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="manual-comments">评论</label>
+                    <input id="manual-comments" type="number" min="0" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="manual-shares">分享</label>
+                    <input id="manual-shares" type="number" min="0" value="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="manual-views">浏览</label>
+                    <input id="manual-views" type="number" min="0" value="0" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="manual-note">备注</label>
+                <textarea id="manual-note" placeholder="可填写数据来源说明"></textarea>
+            </div>
+            <button class="btn btn-warning" type="submit">提交手工数据</button>
+        </form>
+    </div>
+</div>
+
+<div id="detail-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="detail-title">任务详情</h3>
+            <button class="modal-close" data-close="detail-modal">&times;</button>
+        </div>
+
+        <div class="detail-grid" id="detail-grid"></div>
+
+        <div class="form-group">
+            <label>任务描述</label>
+            <textarea id="detail-description" readonly></textarea>
+        </div>
+        <div class="form-group">
+            <label>执行要求</label>
+            <textarea id="detail-instructions" readonly></textarea>
+        </div>
+        <div class="form-group">
+            <label>帖子链接</label>
+            <input id="detail-post-link" readonly>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/client.js"></script>
+<script>
+    let allAssignments = [];
+    let currentStatus = "all";
+    let isAdminView = false;
+
+    function showAlert(message, type = "error") {
+        const alert = document.getElementById("alert");
+        alert.textContent = message;
+        alert.className = `alert ${type}`;
+        alert.style.display = "block";
+    }
+
+    function clearAlert() {
+        const alert = document.getElementById("alert");
+        alert.style.display = "none";
+    }
+
+    function openModal(id) {
+        document.getElementById(id).style.display = "flex";
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = "none";
+    }
+
+    function getLatestMetric(assignment) {
+        const metrics = assignment.metrics || [];
+        if (metrics.length === 0) return null;
+        const sorted = [...metrics].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        return sorted[0];
+    }
+
+    function renderAssignments() {
+        const body = document.getElementById("assignments-body");
+        const empty = document.getElementById("empty-state");
+
+        const filtered = allAssignments.filter((assignment) => {
+            return currentStatus === "all" || assignment.status === currentStatus;
+        });
+
+        if (filtered.length === 0) {
+            body.innerHTML = "";
+            empty.style.display = "block";
+            return;
+        }
+
+        empty.style.display = "none";
+        body.innerHTML = filtered
+            .map((assignment) => {
+                const task = assignment.task || {};
+                const canSubmit = !isAdminView && (assignment.status === "accepted" || assignment.status === "rejected");
+                const canManual = !isAdminView && (
+                    assignment.metric_sync_status === "manual_required"
+                    || assignment.metric_sync_status === "manual_rejected"
+                );
+
+                const actionButtons = [
+                    `<button class="btn btn-outline" data-action="detail" data-id="${assignment.id}">详情</button>`,
+                ];
+
+                if (canSubmit) {
+                    actionButtons.unshift(`<button class="btn btn-primary" data-action="submit" data-id="${assignment.id}">提交链接</button>`);
+                }
+                if (canManual) {
+                    actionButtons.unshift(`<button class="btn btn-warning" data-action="manual" data-id="${assignment.id}">补录数据</button>`);
+                }
+
+                return `
+                    <tr>
+                        <td>${escapeHtml(task.title || "-")}</td>
+                        <td>${escapeHtml(platformLabel(task.platform))}</td>
+                        <td>${escapeHtml(formatDateTime(assignment.created_at))}</td>
+                        <td><span class="status-badge status-${escapeHtml(assignment.status)}">${escapeHtml(assignmentStatusLabel(assignment.status))}</span></td>
+                        <td><span class="sync-badge">${escapeHtml(metricSyncStatusLabel(assignment.metric_sync_status))}</span></td>
+                        <td>¥${Number(assignment.revenue || 0).toFixed(2)}</td>
+                        <td><div class="actions">${actionButtons.join("")}</div></td>
+                    </tr>
+                `;
+            })
+            .join("");
+    }
+
+    async function loadAssignments() {
+        clearAlert();
+        const me = await apiRequest("/users/me");
+        isAdminView = me.role === "admin";
+        allAssignments = isAdminView
+            ? await apiRequest("/admin/assignments")
+            : await apiRequest("/assignments/me");
+        document.querySelector(".assignments-header h1").textContent = isAdminView ? "全部分配记录（管理员）" : "我的任务记录";
+        if (isAdminView) {
+            showAlert("管理员视图：仅查看详情，提交入口在博主账号侧。", "success");
+        }
+        renderAssignments();
+    }
+
+    function openSubmitModal(assignment) {
+        document.getElementById("submit-assignment-id").value = assignment.id;
+        document.getElementById("submit-post-link").value = assignment.post_link || "";
+        openModal("submit-modal");
+    }
+
+    function openManualModal(assignment) {
+        document.getElementById("manual-assignment-id").value = assignment.id;
+
+        const latest = getLatestMetric(assignment);
+        document.getElementById("manual-likes").value = latest ? latest.likes : 0;
+        document.getElementById("manual-comments").value = latest ? latest.comments : 0;
+        document.getElementById("manual-shares").value = latest ? latest.shares : 0;
+        document.getElementById("manual-views").value = latest ? latest.views : 0;
+        document.getElementById("manual-note").value = "";
+
+        openModal("manual-modal");
+    }
+
+    function openDetailModal(assignment) {
+        const task = assignment.task || {};
+        const latest = getLatestMetric(assignment);
+        const grid = document.getElementById("detail-grid");
+
+        document.getElementById("detail-title").textContent = task.title || "任务详情";
+        document.getElementById("detail-description").value = task.description || "";
+        document.getElementById("detail-instructions").value = task.instructions || "";
+        document.getElementById("detail-post-link").value = assignment.post_link || "";
+
+        const metricsText = latest
+            ? `点赞 ${latest.likes} / 评论 ${latest.comments} / 分享 ${latest.shares} / 浏览 ${latest.views} (${latest.source})`
+            : "暂无数据";
+
+        grid.innerHTML = [
+            ["平台", platformLabel(task.platform)],
+            ["状态", assignmentStatusLabel(assignment.status)],
+            ["同步状态", metricSyncStatusLabel(assignment.metric_sync_status)],
+            ["收益", `¥${Number(assignment.revenue || 0).toFixed(2)}`],
+            ["最近同步", formatDateTime(assignment.last_synced_at)],
+            ["分配时间", formatDateTime(assignment.created_at)],
+            ["同步错误", assignment.last_sync_error || "-"],
+            ["最新指标", metricsText],
+        ]
+            .map(([key, value]) => `
+                <div class="detail-item">
+                    <strong>${escapeHtml(key)}</strong>
+                    <div>${escapeHtml(value)}</div>
+                </div>
+            `)
+            .join("");
+
+        openModal("detail-modal");
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+        requireAuthRedirect();
+
+        document.getElementById("logout-link").addEventListener("click", () => {
+            clearAuth();
+        });
+
+        document.getElementById("status-filter").addEventListener("click", (event) => {
+            const button = event.target.closest("button[data-status]");
+            if (!button) return;
+
+            document.querySelectorAll("#status-filter .status-btn").forEach((item) => item.classList.remove("active"));
+            button.classList.add("active");
+            currentStatus = button.dataset.status;
+            renderAssignments();
+        });
+
+        document.getElementById("assignments-body").addEventListener("click", (event) => {
+            const button = event.target.closest("button[data-action]");
+            if (!button) return;
+
+            const assignmentId = Number(button.dataset.id);
+            const assignment = allAssignments.find((item) => item.id === assignmentId);
+            if (!assignment) return;
+
+            if (button.dataset.action === "submit") {
+                openSubmitModal(assignment);
+                return;
+            }
+            if (button.dataset.action === "manual") {
+                openManualModal(assignment);
+                return;
+            }
+            openDetailModal(assignment);
+        });
+
+        document.querySelectorAll(".modal-close").forEach((item) => {
+            item.addEventListener("click", () => closeModal(item.dataset.close));
+        });
+
+        document.querySelectorAll(".modal").forEach((modal) => {
+            modal.addEventListener("click", (event) => {
+                if (event.target === modal) {
+                    closeModal(modal.id);
+                }
+            });
+        });
+
+        document.getElementById("submit-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            clearAlert();
+
+            const assignmentId = Number(document.getElementById("submit-assignment-id").value);
+            const postLink = document.getElementById("submit-post-link").value.trim();
+
+            try {
+                await apiRequest(`/assignments/${assignmentId}/submit`, {
+                    method: "POST",
+                    body: { post_link: postLink },
+                });
+                closeModal("submit-modal");
+                showAlert("任务已提交，系统将尝试自动同步数据", "success");
+                await loadAssignments();
+            } catch (error) {
+                showAlert(error.message || "提交失败");
+            }
+        });
+
+        document.getElementById("manual-form").addEventListener("submit", async (event) => {
+            event.preventDefault();
+            clearAlert();
+
+            const assignmentId = Number(document.getElementById("manual-assignment-id").value);
+            const payload = {
+                likes: Number(document.getElementById("manual-likes").value || 0),
+                comments: Number(document.getElementById("manual-comments").value || 0),
+                shares: Number(document.getElementById("manual-shares").value || 0),
+                views: Number(document.getElementById("manual-views").value || 0),
+                note: document.getElementById("manual-note").value.trim() || null,
+            };
+
+            try {
+                await apiRequest(`/assignments/${assignmentId}/manual-metrics`, {
+                    method: "POST",
+                    body: payload,
+                });
+                closeModal("manual-modal");
+                showAlert("手工数据已提交，等待管理员审核", "success");
+                await loadAssignments();
+            } catch (error) {
+                showAlert(error.message || "提交手工数据失败");
+            }
+        });
+
+        try {
+            await loadAssignments();
+        } catch (error) {
+            showAlert(error.message || "加载任务记录失败");
+        }
+    });
+</script>
+</body>
+</html>

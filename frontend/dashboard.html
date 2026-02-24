@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表盘 - Influencer Promotion Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-header h1 {
+            color: #333;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .user-details {
+            text-align: right;
+        }
+        
+        .user-details p {
+            margin: 0;
+        }
+        
+        .user-details .username {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .user-details .role {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background-color: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .stat-icon.tasks {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .stat-icon.assignments {
+            background-color: #e8f5e8;
+            color: #388e3c;
+        }
+        
+        .stat-icon.earnings {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .stat-icon.completed {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .stat-title {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .recent-activities {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .admin-panel {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 30px;
+            display: none;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .admin-group label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .admin-group input,
+        .admin-group select,
+        .admin-group textarea {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+
+        .admin-group textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .admin-result {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 10px;
+            color: #555;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .admin-subtitle {
+            margin: 0 0 10px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .admin-separator {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 16px 0;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .section-header h2 {
+            font-size: 20px;
+            color: #333;
+        }
+        
+        .section-header a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .section-header a:hover {
+            text-decoration: underline;
+        }
+        
+        .activity-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .activity-table th,
+        .activity-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .activity-table th {
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .activity-table td {
+            color: #333;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .status-approved {
+            background-color: #e8f5e8;
+            color: #388e3c;
+        }
+        
+        .status-rejected {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .status-completed {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100vh;
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-header {
+            margin-bottom: 40px;
+        }
+        
+        .sidebar-header h2 {
+            color: #007bff;
+            font-size: 20px;
+        }
+        
+        .sidebar-nav {
+            list-style: none;
+        }
+        
+        .sidebar-nav li {
+            margin-bottom: 10px;
+        }
+        
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-nav a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-nav a.active {
+            background-color: #007bff;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+            }
+            
+            .main-content {
+                margin-left: 200px;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+
+            .admin-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .user-info {
+                align-self: flex-end;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Influencer Platform</h2>
+        </div>
+        <ul class="sidebar-nav">
+            <li>
+                <a href="/dashboard" class="active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    仪表盘
+                </a>
+            </li>
+            <li>
+                <a href="/tasks">
+                    <i class="fas fa-tasks"></i>
+                    任务
+                </a>
+            </li>
+            <li>
+                <a href="/assignments">
+                    <i class="fas fa-clipboard-list"></i>
+                    我的任务
+                </a>
+            </li>
+            <li>
+                <a href="/profile">
+                    <i class="fas fa-user"></i>
+                    个人资料
+                </a>
+            </li>
+            <li>
+                <a href="/login" id="logout-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    退出登录
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main-content">
+        <!-- 仪表盘头部 -->
+        <div class="dashboard-header">
+            <h1>仪表盘</h1>
+            <div class="user-info">
+                <div class="user-details">
+                    <p class="username" id="current-username">-</p>
+                    <p class="role" id="current-role">-</p>
+                </div>
+                <div class="user-avatar" id="current-avatar">
+                    ?
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计卡片 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon tasks">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="stat-title">可用任务</div>
+                </div>
+                <div class="stat-value" id="stat-available-tasks">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon assignments">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <div class="stat-title">已接受任务</div>
+                </div>
+                <div class="stat-value" id="stat-accepted-tasks">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon earnings">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="stat-title">总收益</div>
+                </div>
+                <div class="stat-value" id="stat-total-revenue">¥0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon completed">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-title">已完成任务</div>
+                </div>
+                <div class="stat-value" id="stat-completed-tasks">0</div>
+            </div>
+        </div>
+
+        <!-- 最近活动 -->
+        <div class="recent-activities">
+            <div class="section-header">
+                <h2>最近活动</h2>
+                <a href="/assignments">查看全部</a>
+            </div>
+            <table class="activity-table">
+                <thead>
+                    <tr>
+                        <th>任务名称</th>
+                        <th>分配时间</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="recent-activities-body"></tbody>
+            </table>
+        </div>
+
+        <div class="admin-panel" id="admin-panel">
+            <div class="section-header">
+                <h2>管理员任务分配</h2>
+            </div>
+
+            <h3 class="admin-subtitle">新增任务</h3>
+            <div class="admin-grid">
+                <div class="admin-group">
+                    <label for="admin-new-title">任务标题</label>
+                    <input id="admin-new-title" placeholder="例如：新品开箱短视频">
+                </div>
+                <div class="admin-group">
+                    <label for="admin-new-platform">平台</label>
+                    <select id="admin-new-platform">
+                        <option value="douyin">抖音</option>
+                        <option value="xiaohongshu">小红书</option>
+                        <option value="weibo">微博</option>
+                    </select>
+                </div>
+                <div class="admin-group">
+                    <label for="admin-new-base-reward">基础奖励（元）</label>
+                    <input id="admin-new-base-reward" type="number" min="0" step="0.01" value="100">
+                </div>
+                <div class="admin-group">
+                    <label for="admin-new-status">任务状态</label>
+                    <select id="admin-new-status">
+                        <option value="published">直接发布</option>
+                        <option value="draft">草稿</option>
+                    </select>
+                </div>
+            </div>
+            <div class="admin-group">
+                <label for="admin-new-description">任务描述</label>
+                <textarea id="admin-new-description" placeholder="任务目标、发布形式、内容方向"></textarea>
+            </div>
+            <div class="admin-group">
+                <label for="admin-new-instructions">执行要求</label>
+                <textarea id="admin-new-instructions" placeholder="必须包含的话题、链接、发布时间窗口等"></textarea>
+            </div>
+            <div class="admin-group">
+                <label for="admin-new-attachments">任务附件（上传到 OSS）</label>
+                <input id="admin-new-attachments" type="file" multiple>
+            </div>
+            <div class="admin-group">
+                <label for="admin-new-attachment-urls">补充附件链接（可选）</label>
+                <textarea id="admin-new-attachment-urls" placeholder="每行一个 URL，或用逗号分隔"></textarea>
+            </div>
+            <div class="admin-actions">
+                <button class="btn btn-primary" id="admin-create-task">创建任务</button>
+            </div>
+
+            <hr class="admin-separator">
+
+            <h3 class="admin-subtitle">任务分配</h3>
+            <div class="admin-grid">
+                <div class="admin-group">
+                    <label for="admin-task-id">已发布任务</label>
+                    <select id="admin-task-id"></select>
+                </div>
+                <div class="admin-group">
+                    <label for="admin-limit">自动分配人数</label>
+                    <input id="admin-limit" type="number" min="1" max="500" value="20">
+                </div>
+                <div class="admin-group">
+                    <label for="admin-user-ids">指定用户ID（逗号分隔）</label>
+                    <input id="admin-user-ids" placeholder="例如: 2,5,8">
+                </div>
+            </div>
+            <div class="admin-actions">
+                <button class="btn btn-outline" id="admin-view-eligible">查看候选达人</button>
+                <button class="btn btn-primary" id="admin-auto-distribute">自动分配</button>
+                <button class="btn btn-primary" id="admin-manual-distribute">按指定ID分配</button>
+            </div>
+            <div class="admin-result" id="admin-result">等待操作</div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="/static/js/client.js"></script>
+    <script>
+        function activityStatusClass(status) {
+            if (status === 'completed') return 'status-completed';
+            if (status === 'rejected' || status === 'cancelled') return 'status-rejected';
+            if (status === 'submitted' || status === 'in_review') return 'status-approved';
+            return 'status-pending';
+        }
+
+        function renderActivities(items) {
+            const tbody = document.getElementById('recent-activities-body');
+            if (!items.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align:center;color:#666;">暂无记录</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = items.map((item) => `
+                <tr>
+                    <td>${escapeHtml(item.title)}</td>
+                    <td>${escapeHtml(formatDateTime(item.created_at))}</td>
+                    <td><span class="status-badge ${activityStatusClass(item.status)}">${escapeHtml(assignmentStatusLabel(item.status))}</span></td>
+                    <td><a href="/assignments">查看</a></td>
+                </tr>
+            `).join('');
+        }
+
+        function setStats({ availableTasks, acceptedTasks, totalRevenue, completedTasks }) {
+            document.getElementById('stat-available-tasks').textContent = String(availableTasks);
+            document.getElementById('stat-accepted-tasks').textContent = String(acceptedTasks);
+            document.getElementById('stat-total-revenue').textContent = `¥${Number(totalRevenue).toFixed(2)}`;
+            document.getElementById('stat-completed-tasks').textContent = String(completedTasks);
+        }
+
+        function setAdminResult(message) {
+            document.getElementById('admin-result').textContent = message;
+        }
+
+        function parseAttachmentUrls(raw) {
+            return (raw || '')
+                .split(/[\n,]/)
+                .map((item) => item.trim())
+                .filter((item) => /^https?:\/\/\S+$/i.test(item));
+        }
+
+        async function uploadTaskAttachments(files) {
+            const uploadedUrls = [];
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                const result = await apiRequest('/admin/tasks/attachments/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+                uploadedUrls.push(result.url);
+            }
+            return uploadedUrls;
+        }
+
+        function getSelectedTaskId() {
+            const value = Number(document.getElementById('admin-task-id').value);
+            return Number.isFinite(value) && value > 0 ? value : null;
+        }
+
+        function refreshAdminTaskOptions(tasks) {
+            const publishedTasks = (tasks || []).filter((item) => item.status === 'published');
+            const select = document.getElementById('admin-task-id');
+
+            select.innerHTML = publishedTasks
+                .map((task) => `<option value="${task.id}">${escapeHtml(task.title)} (ID:${task.id})</option>`)
+                .join('');
+
+            return publishedTasks.length;
+        }
+
+        async function loadDashboardForBlogger() {
+            const [tasks, assignments] = await Promise.all([
+                apiRequest('/tasks/'),
+                apiRequest('/assignments/me'),
+            ]);
+
+            const acceptedTasks = assignments.filter((item) => item.status === 'accepted').length;
+            const completedTasks = assignments.filter((item) => item.status === 'completed').length;
+            const totalRevenue = assignments.reduce((sum, item) => sum + Number(item.revenue || 0), 0);
+            const activities = [...assignments]
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                .slice(0, 8)
+                .map((item) => ({
+                    title: item.task?.title || '未命名任务',
+                    created_at: item.created_at,
+                    status: item.status,
+                }));
+
+            setStats({
+                availableTasks: tasks.length,
+                acceptedTasks,
+                totalRevenue,
+                completedTasks,
+            });
+            renderActivities(activities);
+        }
+
+        async function loadDashboardForAdmin() {
+            const [tasks, assignments] = await Promise.all([
+                apiRequest('/admin/tasks'),
+                apiRequest('/admin/assignments'),
+            ]);
+
+            const publishedCount = tasks.filter((item) => item.status === 'published').length;
+            const completedTasks = assignments.filter((item) => item.status === 'completed').length;
+            const totalRevenue = assignments.reduce((sum, item) => sum + Number(item.revenue || 0), 0);
+            const activities = [...assignments]
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                .slice(0, 8)
+                .map((item) => ({
+                    title: item.task?.title || '未命名任务',
+                    created_at: item.created_at,
+                    status: item.status,
+                }));
+
+            setStats({
+                availableTasks: publishedCount,
+                acceptedTasks: assignments.length,
+                totalRevenue,
+                completedTasks,
+            });
+            renderActivities(activities);
+            return tasks;
+        }
+
+        function initAdminPanel(tasks) {
+            const panel = document.getElementById('admin-panel');
+            panel.style.display = 'block';
+
+            const publishedCount = refreshAdminTaskOptions(tasks);
+            if (!publishedCount) {
+                setAdminResult('当前没有已发布任务。请先在上方创建并发布任务。');
+            }
+
+            document.getElementById('admin-create-task').addEventListener('click', async () => {
+                const title = document.getElementById('admin-new-title').value.trim();
+                const description = document.getElementById('admin-new-description').value.trim();
+                const instructions = document.getElementById('admin-new-instructions').value.trim();
+                const platform = document.getElementById('admin-new-platform').value;
+                const status = document.getElementById('admin-new-status').value;
+                const baseReward = Number(document.getElementById('admin-new-base-reward').value || 0);
+                const attachmentInput = document.getElementById('admin-new-attachments');
+                const manualAttachmentUrls = parseAttachmentUrls(
+                    document.getElementById('admin-new-attachment-urls').value
+                );
+
+                if (!title || !description || !instructions) {
+                    setAdminResult('创建失败: 标题、任务描述、执行要求均为必填。');
+                    return;
+                }
+                if (!Number.isFinite(baseReward) || baseReward < 0) {
+                    setAdminResult('创建失败: 基础奖励必须是大于等于 0 的数字。');
+                    return;
+                }
+
+                try {
+                    const files = Array.from(attachmentInput?.files || []);
+                    let uploadedUrls = [];
+                    if (files.length) {
+                        setAdminResult(`正在上传 ${files.length} 个附件到 OSS...`);
+                        uploadedUrls = await uploadTaskAttachments(files);
+                    }
+                    const attachments = [...uploadedUrls, ...manualAttachmentUrls];
+
+                    const created = await apiRequest('/admin/tasks', {
+                        method: 'POST',
+                        body: {
+                            title,
+                            description,
+                            platform,
+                            base_reward: baseReward,
+                            instructions,
+                            attachments,
+                            status,
+                        },
+                    });
+
+                    const refreshedTasks = await loadDashboardForAdmin();
+                    refreshAdminTaskOptions(refreshedTasks);
+
+                    if (status === 'published') {
+                        document.getElementById('admin-task-id').value = String(created.id);
+                    }
+
+                    if (attachmentInput) {
+                        attachmentInput.value = '';
+                    }
+                    document.getElementById('admin-new-attachment-urls').value = '';
+                    setAdminResult(
+                        `创建成功: 任务ID ${created.id}，状态 ${created.status}，附件 ${attachments.length} 个。`
+                    );
+                } catch (error) {
+                    setAdminResult(`创建失败: ${error.message || error}`);
+                }
+            });
+
+            document.getElementById('admin-view-eligible').addEventListener('click', async () => {
+                const taskId = getSelectedTaskId();
+                if (!taskId) {
+                    setAdminResult('请选择任务。');
+                    return;
+                }
+                const limit = Number(document.getElementById('admin-limit').value || 20);
+                try {
+                    const bloggers = await apiRequest(`/admin/tasks/${taskId}/eligible-bloggers?limit=${limit}`);
+                    if (!bloggers.length) {
+                        setAdminResult('没有可分配的候选达人。');
+                        return;
+                    }
+                    const lines = bloggers.slice(0, 30).map((item) => {
+                        const name = item.display_name || item.username;
+                        return `用户ID ${item.user_id} | ${name} | 粉丝 ${item.follower_total} | 均播 ${item.avg_views} | 权重 ${item.weight}`;
+                    });
+                    setAdminResult(`候选达人(${bloggers.length}):\n${lines.join('\n')}`);
+                } catch (error) {
+                    setAdminResult(`查询失败: ${error.message || error}`);
+                }
+            });
+
+            document.getElementById('admin-auto-distribute').addEventListener('click', async () => {
+                const taskId = getSelectedTaskId();
+                if (!taskId) {
+                    setAdminResult('请选择任务。');
+                    return;
+                }
+                const limit = Number(document.getElementById('admin-limit').value || 20);
+                try {
+                    const result = await apiRequest(`/admin/tasks/${taskId}/distribute`, {
+                        method: 'POST',
+                        body: { limit },
+                    });
+                    setAdminResult(`自动分配完成: 新建 ${result.created_count} 条，跳过已存在 ${result.skipped_existing_count} 条。`);
+                    const refreshedTasks = await loadDashboardForAdmin();
+                    refreshAdminTaskOptions(refreshedTasks);
+                } catch (error) {
+                    setAdminResult(`分配失败: ${error.message || error}`);
+                }
+            });
+
+            document.getElementById('admin-manual-distribute').addEventListener('click', async () => {
+                const taskId = getSelectedTaskId();
+                if (!taskId) {
+                    setAdminResult('请选择任务。');
+                    return;
+                }
+
+                const raw = document.getElementById('admin-user-ids').value.trim();
+                const ids = raw
+                    .split(',')
+                    .map((item) => Number(item.trim()))
+                    .filter((item) => Number.isInteger(item) && item > 0);
+
+                if (!ids.length) {
+                    setAdminResult('请填写有效的用户ID列表。');
+                    return;
+                }
+
+                try {
+                    const result = await apiRequest(`/admin/tasks/${taskId}/distribute`, {
+                        method: 'POST',
+                        body: { user_ids: ids, limit: ids.length },
+                    });
+                    setAdminResult(`指定分配完成: 新建 ${result.created_count} 条，跳过已存在 ${result.skipped_existing_count} 条。`);
+                    const refreshedTasks = await loadDashboardForAdmin();
+                    refreshAdminTaskOptions(refreshedTasks);
+                } catch (error) {
+                    setAdminResult(`分配失败: ${error.message || error}`);
+                }
+            });
+        }
+
+        async function initDashboard() {
+            requireAuthRedirect();
+            const user = await apiRequest('/users/me');
+
+            const name = user.display_name || user.username || '-';
+            const avatar = name.slice(0, 1).toUpperCase() || '?';
+            document.getElementById('current-username').textContent = name;
+            document.getElementById('current-role').textContent = roleLabel(user.role);
+            document.getElementById('current-avatar').textContent = avatar;
+
+            if (user.role === 'admin') {
+                const tasks = await loadDashboardForAdmin();
+                initAdminPanel(tasks);
+            } else {
+                await loadDashboardForBlogger();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initDashboard().catch(() => {
+                clearAuth();
+                window.location.href = '/login';
+            });
+
+            document.getElementById('logout-link').addEventListener('click', () => {
+                clearAuth();
+            });
+        });
+    </script>
+</body>
+</html>
