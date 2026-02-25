@@ -72,6 +72,10 @@ def submit_assignment(
     assignment.post_link = submission.post_link
     assignment.status = AssignmentStatus.submitted
     assignment.reject_reason = None
+    assignment.metric_sync_status = MetricSyncStatus.manual_required
+    assignment.last_sync_error = None
+    assignment.last_synced_at = None
+    assignment.revenue = 0.0
     assignment.updated_at = datetime.utcnow()
     db.add(assignment)
     log_activity(
@@ -107,7 +111,14 @@ def submit_manual_metrics(
     if assignment.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your assignment")
 
+    if assignment.status not in {AssignmentStatus.submitted, AssignmentStatus.in_review}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Manual metric input is only allowed after assignment submission",
+        )
+
     if assignment.metric_sync_status not in {
+        MetricSyncStatus.normal,
         MetricSyncStatus.manual_required,
         MetricSyncStatus.manual_rejected,
     }:

@@ -136,18 +136,31 @@ class PlatformAccountUpdateRequest(SQLModel):
 
 
 class PayoutInfoUpsert(SQLModel):
-    payout_method: PayoutMethod
-    account_name: str
-    account_no: str
-    account_qr_url: Optional[str] = None
+    payout_method: PayoutMethod = Field(default=PayoutMethod.bank_card)
+    bank_description: Optional[str] = None
+    wechat_id: Optional[str] = None
+    wechat_phone: Optional[str] = None
+    wechat_qr_url: Optional[str] = None
+    alipay_phone: Optional[str] = None
+    alipay_account_name: Optional[str] = None
+    alipay_qr_url: Optional[str] = None
     note: Optional[str] = None
 
 
 class PayoutInfoRead(PayoutInfoUpsert):
+    account_name: Optional[str] = None
+    account_no: Optional[str] = None
+    account_qr_url: Optional[str] = None
     id: int
     user_id: int
     created_at: datetime
     updated_at: datetime
+
+
+class PayoutQrUploadRead(SQLModel):
+    method: PayoutMethod
+    object_key: str
+    url: str
 
 
 class UserActivityRead(SQLModel):
@@ -194,6 +207,6 @@ class AdminUserAssignmentSnapshotRead(SQLModel):
 class AdminUserDetailRead(SQLModel):
     user: UserRead
     payout_info: Optional[PayoutInfoRead] = None
-    assignment_stats: AdminUserAssignmentStatsRead
+    assignment_stats: Optional[AdminUserAssignmentStatsRead] = None
     recent_assignments: list[AdminUserAssignmentSnapshotRead] = Field(default_factory=list)
     recent_activities: list[UserActivityRead] = Field(default_factory=list)

@@ -420,8 +420,12 @@
                 const task = assignment.task || {};
                 const canSubmit = assignment.status === "accepted" || assignment.status === "rejected";
                 const canManual = (
-                    assignment.metric_sync_status === "manual_required"
-                    || assignment.metric_sync_status === "manual_rejected"
+                    (assignment.status === "submitted" || assignment.status === "in_review")
+                    && (
+                        assignment.metric_sync_status === "normal"
+                        || assignment.metric_sync_status === "manual_required"
+                        || assignment.metric_sync_status === "manual_rejected"
+                    )
                 );
 
                 const actionButtons = [
@@ -432,7 +436,7 @@
                     actionButtons.unshift(`<button class="btn btn-primary" data-action="submit" data-id="${assignment.id}">提交链接</button>`);
                 }
                 if (canManual) {
-                    actionButtons.unshift(`<button class="btn btn-warning" data-action="manual" data-id="${assignment.id}">补录数据</button>`);
+                    actionButtons.unshift(`<button class="btn btn-warning" data-action="manual" data-id="${assignment.id}">提交手工数据</button>`);
                 }
 
                 return `
@@ -571,7 +575,7 @@
                     body: { post_link: postLink },
                 });
                 closeModal("submit-modal");
-                showAlert("任务已提交，系统将尝试自动同步数据", "success");
+                showAlert("任务已提交：自动数据仅作预采集，请尽快提交手工数据进入审核", "success");
                 await loadAssignments();
             } catch (error) {
                 showAlert(error.message || "提交失败");

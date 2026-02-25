@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>用户审核中心 - Influencer Promotion Platform</title>
+    <title>达人审核中心 - Influencer Promotion Platform</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/admin-dashboard.css">
 </head>
@@ -16,7 +16,8 @@
         </div>
         <ul class="sidebar-nav">
             <li><a href="/admin/dashboard" data-nav="dashboard"><i class="fas fa-chart-pie"></i>总览</a></li>
-            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>用户审核</a></li>
+            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>达人审核</a></li>
+            <li><a href="/admin/settlements" data-nav="settlements"><i class="fas fa-wallet"></i>收益结款</a></li>
             <li><a href="/admin/reviews" data-nav="reviews"><i class="fas fa-clipboard-check"></i>作业审核</a></li>
             <li><a href="/admin/tasks" data-nav="tasks"><i class="fas fa-diagram-project"></i>任务分配</a></li>
             <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
@@ -27,65 +28,55 @@
         <div class="container">
             <header class="topbar">
                 <div>
-                    <h1 class="page-title">用户审核中心</h1>
-                    <p class="page-subtitle">先看完整资料再做审核，避免信息不足导致误审。</p>
+                    <h1 class="page-title">达人审核中心</h1>
+                    <p class="page-subtitle">聚焦达人资料审核与活跃度判断，支持状态回退与快速决策。</p>
                 </div>
                 <div class="header-actions">
                     <span class="meta-chip" id="admin-user-chip">当前管理员: -</span>
-                    <span class="meta-chip" id="current-module-chip">模块: 用户审核</span>
+                    <span class="meta-chip" id="current-module-chip">模块: 达人审核</span>
                     <span class="meta-chip" id="last-updated-chip">最近更新: -</span>
                 </div>
             </header>
 
             <div id="page-alert" class="alert"></div>
 
-            <section class="two-column">
-                <div class="panel">
-                    <div class="panel-header">
-                        <div>
-                            <h2 class="panel-title">审核队列</h2>
-                            <p class="panel-subtitle">支持状态筛选与关键词检索</p>
-                        </div>
-                        <button class="btn btn-outline" id="reload-users">刷新列表</button>
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">达人列表</h2>
+                        <p class="panel-subtitle">支持状态筛选与关键词检索，点击查看详情打开弹窗</p>
                     </div>
-
-                    <div class="summary-grid" id="review-summary-grid"></div>
-
-                    <div class="toolbar">
-                        <select class="select field-sm" id="user-status-filter">
-                            <option value="pending">待审核</option>
-                            <option value="under_review">审核中</option>
-                            <option value="rejected">已驳回</option>
-                            <option value="approved">已通过</option>
-                            <option value="all">全部博主</option>
-                        </select>
-                        <input class="input field-md" id="user-search-input" placeholder="搜索昵称 / 邮箱 / 城市 / 领域">
-                    </div>
-
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>达人信息</th>
-                                <th>城市/领域</th>
-                                <th>粉丝/均播</th>
-                                <th>状态</th>
-                                <th>操作</th>
-                            </tr>
-                            </thead>
-                            <tbody id="user-review-body"></tbody>
-                        </table>
-                    </div>
+                    <button class="btn btn-outline" id="reload-users">刷新列表</button>
                 </div>
 
-                <aside class="panel detail-panel" id="user-detail-panel">
-                    <div class="detail-header">
-                        <h3 class="detail-title">审核详情</h3>
-                        <span class="muted-text">先核资料，再做结论</span>
-                    </div>
-                    <div id="user-detail-content" class="muted-text">请先从左侧选择一个用户查看详细资料。</div>
-                </aside>
+                <div class="summary-grid" id="review-summary-grid"></div>
+
+                <div class="toolbar">
+                    <select class="select field-sm" id="user-status-filter">
+                        <option value="pending">待审核</option>
+                        <option value="under_review">审核中</option>
+                        <option value="rejected">已驳回</option>
+                        <option value="approved">已通过</option>
+                        <option value="all">全部博主</option>
+                    </select>
+                    <input class="input field-md" id="user-search-input" placeholder="搜索昵称 / 邮箱 / 城市 / 领域">
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>达人信息</th>
+                            <th>城市/领域</th>
+                            <th>粉丝/均播</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="user-review-body"></tbody>
+                    </table>
+                </div>
             </section>
         </div>
     </main>

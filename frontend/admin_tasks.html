@@ -16,7 +16,8 @@
         </div>
         <ul class="sidebar-nav">
             <li><a href="/admin/dashboard" data-nav="dashboard"><i class="fas fa-chart-pie"></i>总览</a></li>
-            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>用户审核</a></li>
+            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>达人审核</a></li>
+            <li><a href="/admin/settlements" data-nav="settlements"><i class="fas fa-wallet"></i>收益结款</a></li>
             <li><a href="/admin/reviews" data-nav="reviews"><i class="fas fa-clipboard-check"></i>作业审核</a></li>
             <li><a href="/admin/tasks" data-nav="tasks"><i class="fas fa-diagram-project"></i>任务分配</a></li>
             <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
@@ -28,11 +29,11 @@
             <header class="topbar">
                 <div>
                     <h1 class="page-title">任务运营中心</h1>
-                    <p class="page-subtitle">创建任务、筛选候选达人并执行自动/手动分配。</p>
+                    <p class="page-subtitle">创建并发布任务，查看候选达人规模，达人自行接单。</p>
                 </div>
                 <div class="header-actions">
                     <span class="meta-chip" id="admin-user-chip">当前管理员: -</span>
-                    <span class="meta-chip" id="current-module-chip">模块: 任务分配</span>
+                    <span class="meta-chip" id="current-module-chip">模块: 任务运营</span>
                     <span class="meta-chip" id="last-updated-chip">最近更新: -</span>
                     <button class="btn btn-primary" id="refresh-tasks">刷新任务数据</button>
                 </div>
@@ -44,9 +45,10 @@
                 <div class="panel-header">
                     <div>
                         <h2 class="panel-title">新增任务</h2>
-                        <p class="panel-subtitle">先定义目标，再配置投放要求与附件</p>
+                        <p class="panel-subtitle">先定义目标，再配置投放要求与附件；草稿可随时调出继续编辑</p>
                     </div>
                 </div>
+                <div id="task-editing-banner" class="editing-banner" style="display:none;"></div>
 
                 <div class="form-grid three">
                     <div class="form-group">
@@ -67,13 +69,17 @@
                     </div>
                 </div>
 
-                <div class="form-grid">
+                <div class="form-grid three">
                     <div class="form-group">
                         <label for="task-status">任务状态</label>
                         <select id="task-status">
                             <option value="published">直接发布</option>
                             <option value="draft">草稿</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-accept-limit">接单人数上限（可选）</label>
+                        <input id="task-accept-limit" type="number" min="1" step="1" placeholder="留空表示不限人数">
                     </div>
                     <div class="form-group">
                         <label for="task-attachments">任务附件（上传到 OSS）</label>
@@ -94,41 +100,39 @@
                     <textarea id="task-attachment-urls" placeholder="每行一个 URL，或用逗号分隔"></textarea>
                 </div>
 
+                <div class="estimate-panel-inline">
+                    <div class="estimate-panel-head">
+                        <h3 class="estimate-panel-title">接单规模预估（动态）</h3>
+                        <span class="meta-chip">平台: <span id="estimate-platform-value">-</span></span>
+                    </div>
+                    <p class="estimate-panel-subtitle">根据当前新增任务输入自动估算，无需手动选择已发布任务。</p>
+                    <div class="estimate-metrics">
+                        <div class="estimate-stat">
+                            <p class="estimate-stat-label">候选达人总数</p>
+                            <p class="estimate-stat-value" id="estimate-eligible-count">-</p>
+                        </div>
+                        <div class="estimate-stat">
+                            <p class="estimate-stat-label">预计可接单人数</p>
+                            <p class="estimate-stat-value" id="estimate-accept-count">-</p>
+                        </div>
+                        <div class="estimate-stat">
+                            <p class="estimate-stat-label">预计饱和度</p>
+                            <p class="estimate-stat-value" id="estimate-saturation-rate">-</p>
+                        </div>
+                        <div class="estimate-stat">
+                            <p class="estimate-stat-label">建议投放规模</p>
+                            <p class="estimate-stat-value" id="estimate-recommended-scale">-</p>
+                        </div>
+                    </div>
+                    <div class="result-box" id="task-estimate-result">等待输入后自动预估</div>
+                </div>
+
                 <div class="actions">
                     <button class="btn btn-primary" id="create-task-btn">创建任务</button>
-                </div>
-            </section>
-
-            <section class="panel">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">任务分配</h2>
-                        <p class="panel-subtitle">选择发布任务后查看候选达人，执行自动/指定分配</p>
-                    </div>
+                    <button class="btn btn-outline" id="cancel-edit-task-btn" style="display:none;">取消编辑</button>
                 </div>
 
-                <div class="form-grid three">
-                    <div class="form-group">
-                        <label for="distribute-task-id">已发布任务</label>
-                        <select id="distribute-task-id"></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="distribute-limit">自动分配人数</label>
-                        <input id="distribute-limit" type="number" min="1" max="500" value="20">
-                    </div>
-                    <div class="form-group">
-                        <label for="distribute-user-ids">指定用户ID（逗号分隔）</label>
-                        <input id="distribute-user-ids" placeholder="例如: 2,5,8">
-                    </div>
-                </div>
-
-                <div class="actions">
-                    <button class="btn btn-outline" id="view-eligible-btn">查看候选达人</button>
-                    <button class="btn btn-primary" id="auto-distribute-btn">自动分配</button>
-                    <button class="btn btn-primary" id="manual-distribute-btn">按指定ID分配</button>
-                </div>
-
-                <div class="result-box" id="task-op-result">等待操作</div>
+                <div class="result-box result-box-subtle" id="task-op-result">等待操作</div>
             </section>
 
             <section class="panel">
@@ -147,7 +151,10 @@
                             <th>平台</th>
                             <th>状态</th>
                             <th>基础奖励</th>
+                            <th>接单上限</th>
+                            <th>已接/上限</th>
                             <th>创建时间</th>
+                            <th>操作</th>
                         </tr>
                         </thead>
                         <tbody id="task-list-body"></tbody>

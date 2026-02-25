@@ -281,24 +281,15 @@ async (page) => {
     'Published task options did not load expected task ID'
   );
   await page.selectOption('#distribute-task-id', taskId);
-  await page.fill('#distribute-limit', '1');
+  await page.fill('#candidate-preview-limit', '1');
 
   await page.click('#view-eligible-btn');
   await waitUntil(
     () => page.evaluate(() => {
       const text = document.querySelector('#task-op-result')?.textContent || '';
-      return text.includes('候选达人(');
+      return text.includes('候选达人总数');
     }),
-    'Eligible bloggers list did not render'
-  );
-
-  await page.click('#auto-distribute-btn');
-  await waitUntil(
-    () => page.evaluate(() => {
-      const text = document.querySelector('#task-op-result')?.textContent || '';
-      return text.includes('自动分配完成');
-    }),
-    'Auto distribute result was not rendered'
+    'Eligible bloggers summary did not render'
   );
 }
 JS

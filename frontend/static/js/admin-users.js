@@ -3,6 +3,8 @@
     let selectedUserId = null;
     let selectedDetail = null;
     let reviewSummary = null;
+    let detailModalEl = null;
+    let detailContentEl = null;
 
     function reviewStatusLabel(status) {
         const map = {
@@ -25,14 +27,14 @@
         return (user.douyin_accounts || []).length + (user.xiaohongshu_accounts || []).length + (user.weibo_accounts || []).length;
     }
 
-    function buildCompleteness(user, payout) {
+    function buildCompleteness(user) {
         const checks = [
             { label: "实名信息", ok: Boolean(user.real_name && user.id_no) },
             { label: "联系方式", ok: Boolean(user.phone) },
             { label: "城市与领域", ok: Boolean(user.city && user.category) },
             { label: "至少 1 个社媒账号", ok: socialAccountCount(user) > 0 },
-            { label: "收款信息", ok: Boolean(payout && payout.account_no) },
         ];
+
         const done = checks.filter((item) => item.ok).length;
         const percent = Math.round((done / checks.length) * 100);
         return {
@@ -44,8 +46,14 @@
         };
     }
 
-    function userActions(user) {
-        const actions = [`<button class="mini-btn muted" data-action="open-detail" data-user-id="${user.id}">查看详情</button>`];
+    function userActions(user, options = {}) {
+        const includeOpenDetail = options.includeOpenDetail !== false;
+        const actions = [];
+
+        if (includeOpenDetail) {
+            actions.push(`<button class="mini-btn muted" data-action="open-detail" data-user-id="${user.id}">查看详情</button>`);
+        }
+
         if (user.review_status === "pending") {
             actions.push(`<button class="mini-btn primary" data-action="user-review" data-next="under_review" data-user-id="${user.id}">进入审核</button>`);
         } else if (user.review_status === "under_review") {
@@ -53,7 +61,10 @@
             actions.push(`<button class="mini-btn danger" data-action="user-review" data-next="rejected" data-user-id="${user.id}">驳回</button>`);
         } else if (user.review_status === "rejected") {
             actions.push(`<button class="mini-btn warning" data-action="user-review" data-next="under_review" data-user-id="${user.id}">重新审核</button>`);
+        } else if (user.review_status === "approved") {
+            actions.push(`<button class="mini-btn warning" data-action="user-review" data-next="under_review" data-user-id="${user.id}">回退审核中</button>`);
         }
+
         return actions.join("");
     }
 
@@ -105,7 +116,7 @@
         });
 
         if (!filtered.length) {
-            body.innerHTML = `<tr><td colspan="6" class="empty">当前筛选条件下无可展示用户</td></tr>`;
+            body.innerHTML = `<tr><td colspan="6" class="empty">当前筛选条件下无可展示达人</td></tr>`;
             return;
         }
 
@@ -150,40 +161,6 @@
         `).join("");
     }
 
-    function renderAssignments(detail) {
-        const items = detail.recent_assignments || [];
-        if (!items.length) {
-            return `<div class="empty">暂无历史分配记录</div>`;
-        }
-
-        return `
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>分配ID</th>
-                        <th>任务</th>
-                        <th>状态</th>
-                        <th>收益</th>
-                        <th>更新时间</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    ${items.map((item) => `
-                        <tr>
-                            <td>${item.assignment_id}</td>
-                            <td>${escapeHtml(item.task_title || `任务#${item.task_id}`)}</td>
-                            <td><span class="status ${escapeHtml(item.status)}">${escapeHtml(assignmentStatusLabel(item.status))}</span></td>
-                            <td>¥${Number(item.revenue || 0).toFixed(2)}</td>
-                            <td>${escapeHtml(formatDateTime(item.updated_at))}</td>
-                        </tr>
-                    `).join("")}
-                    </tbody>
-                </table>
-            </div>
-        `;
-    }
-
     function renderActivities(detail) {
         const items = detail.recent_activities || [];
         if (!items.length) {
@@ -207,24 +184,12 @@
     }
 
     function renderDetail(detail) {
-        const container = document.getElementById("user-detail-content");
+        if (!detailContentEl) return;
+
         const user = detail.user;
-        const payout = detail.payout_info;
-        const stats = detail.assignment_stats;
         const tags = (user.tags || []).length ? user.tags.join(" / ") : "-";
         const reviewAt = user.reviewed_at ? formatDateTime(user.reviewed_at) : "-";
-        const completeness = buildCompleteness(user, payout);
-
-        const payoutHtml = payout
-            ? `
-                <div class="info-grid">
-                    <div class="info-item"><span>收款方式</span><strong>${escapeHtml(payout.payout_method || "-")}</strong></div>
-                    <div class="info-item"><span>收款户名</span><strong>${escapeHtml(payout.account_name || "-")}</strong></div>
-                    <div class="info-item"><span>收款账号</span><strong>${escapeHtml(payout.account_no || "-")}</strong></div>
-                    <div class="info-item"><span>备注</span><strong>${escapeHtml(payout.note || "-")}</strong></div>
-                </div>
-            `
-            : `<div class="empty">该用户尚未提交收款信息</div>`;
+        const completeness = buildCompleteness(user);
 
         const completenessHtml = completeness.missing.length
             ? `
@@ -232,94 +197,129 @@
                     ${completeness.missing.map((label) => `<li>${escapeHtml(label)}待补全</li>`).join("")}
                 </ul>
             `
-            : `<p class="ok-text">资料完整，可直接进入审核结论阶段。</p>`;
+            : `<p class="ok-text">资料完整，可进入下一步审核动作。</p>`;
 
-        container.innerHTML = `
-            <section class="module-card">
-                <div class="detail-header">
-                    <h3 class="detail-title">${escapeHtml(user.display_name || user.username || "-")}</h3>
-                    <span class="status ${escapeHtml(user.review_status)}">${escapeHtml(reviewStatusLabel(user.review_status))}</span>
-                </div>
-                <div class="info-grid">
-                    <div class="info-item"><span>用户ID</span><strong>${user.id}</strong></div>
-                    <div class="info-item"><span>角色 / 状态</span><strong>${escapeHtml(roleLabel(user.role))} / ${user.is_active ? "启用" : "停用"}</strong></div>
-                    <div class="info-item"><span>注册时间</span><strong>${escapeHtml(formatDateTime(user.created_at))}</strong></div>
-                    <div class="info-item"><span>最近审核时间</span><strong>${escapeHtml(reviewAt)}</strong></div>
-                    <div class="info-item"><span>邮箱</span><strong>${escapeHtml(user.email || "-")}</strong></div>
-                    <div class="info-item"><span>手机号</span><strong>${escapeHtml(user.phone || "-")}</strong></div>
-                    <div class="info-item"><span>实名 / 证件号</span><strong>${escapeHtml(user.real_name || "-")} / ${escapeHtml(maskIdNo(user.id_no))}</strong></div>
-                    <div class="info-item"><span>城市 / 领域</span><strong>${escapeHtml(user.city || "-")} / ${escapeHtml(user.category || "-")}</strong></div>
-                    <div class="info-item"><span>粉丝 / 均播</span><strong>${Number(user.follower_total || 0).toLocaleString("zh-CN")} / ${Number(user.avg_views || 0).toLocaleString("zh-CN")}</strong></div>
-                    <div class="info-item"><span>标签</span><strong>${escapeHtml(tags)}</strong></div>
-                    <div class="info-item"><span>上次审核结论</span><strong>${escapeHtml(user.review_reason || "-")}</strong></div>
-                    <div class="info-item"><span>运营权重</span><strong>${Number(user.weight || 1).toFixed(2)}</strong></div>
-                </div>
+        detailContentEl.innerHTML = `
+            <div class="detail-modal-grid">
+                <section class="module-card">
+                    <div class="detail-header">
+                        <h3 class="detail-title">${escapeHtml(user.display_name || user.username || "-")}</h3>
+                        <span class="status ${escapeHtml(user.review_status)}">${escapeHtml(reviewStatusLabel(user.review_status))}</span>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item"><span>达人ID</span><strong>${user.id}</strong></div>
+                        <div class="info-item"><span>角色 / 状态</span><strong>${escapeHtml(roleLabel(user.role))} / ${user.is_active ? "启用" : "停用"}</strong></div>
+                        <div class="info-item"><span>注册时间</span><strong>${escapeHtml(formatDateTime(user.created_at))}</strong></div>
+                        <div class="info-item"><span>最近审核时间</span><strong>${escapeHtml(reviewAt)}</strong></div>
+                        <div class="info-item"><span>邮箱</span><strong>${escapeHtml(user.email || "-")}</strong></div>
+                        <div class="info-item"><span>手机号</span><strong>${escapeHtml(user.phone || "-")}</strong></div>
+                        <div class="info-item"><span>实名 / 证件号</span><strong>${escapeHtml(user.real_name || "-")} / ${escapeHtml(maskIdNo(user.id_no))}</strong></div>
+                        <div class="info-item"><span>城市 / 领域</span><strong>${escapeHtml(user.city || "-")} / ${escapeHtml(user.category || "-")}</strong></div>
+                        <div class="info-item"><span>粉丝 / 均播</span><strong>${Number(user.follower_total || 0).toLocaleString("zh-CN")} / ${Number(user.avg_views || 0).toLocaleString("zh-CN")}</strong></div>
+                        <div class="info-item"><span>标签</span><strong>${escapeHtml(tags)}</strong></div>
+                        <div class="info-item"><span>上次审核结论</span><strong>${escapeHtml(user.review_reason || "-")}</strong></div>
+                    </div>
+                </section>
 
-                <div class="row-actions">
-                    ${userActions(user)}
-                </div>
+                <section class="module-card">
+                    <h4>审核准备度</h4>
+                    <div class="completeness-head">
+                        <span>资料完整度</span>
+                        <strong>${completeness.percent}% (${completeness.done}/${completeness.total})</strong>
+                    </div>
+                    <div class="progress-track"><span style="width:${completeness.percent}%"></span></div>
+                    ${completenessHtml}
+                </section>
 
-                <div class="weight-editor">
-                    <input class="input" id="detail-weight-input" type="number" min="0.1" step="0.1" value="${Number(user.weight || 1).toFixed(1)}">
-                    <button class="mini-btn primary" data-action="save-weight" data-user-id="${user.id}">更新运营权重</button>
-                </div>
-            </section>
+                <section class="module-card">
+                    <h4>平台账号</h4>
+                    <ul class="stack-list">
+                        ${renderAccountGroup("抖音", "douyin", user.douyin_accounts)}
+                        ${renderAccountGroup("小红书", "xiaohongshu", user.xiaohongshu_accounts)}
+                        ${renderAccountGroup("微博", "weibo", user.weibo_accounts)}
+                    </ul>
+                </section>
 
-            <section class="module-card">
-                <h4>审核准备度</h4>
-                <div class="completeness-head">
-                    <span>资料完整度</span>
-                    <strong>${completeness.percent}% (${completeness.done}/${completeness.total})</strong>
-                </div>
-                <div class="progress-track"><span style="width:${completeness.percent}%"></span></div>
-                ${completenessHtml}
-            </section>
-
-            <section class="module-card">
-                <h4>平台账号</h4>
-                <ul class="stack-list">
-                    ${renderAccountGroup("抖音", "douyin", user.douyin_accounts)}
-                    ${renderAccountGroup("小红书", "xiaohongshu", user.xiaohongshu_accounts)}
-                    ${renderAccountGroup("微博", "weibo", user.weibo_accounts)}
-                </ul>
-            </section>
-
-            <section class="module-card">
-                <h4>收款信息</h4>
-                ${payoutHtml}
-            </section>
-
-            <section class="module-card">
-                <h4>分配统计</h4>
-                <div class="tiny-kpi">
-                    <div class="box"><p class="label">总分配</p><p class="value">${stats.total}</p></div>
-                    <div class="box"><p class="label">已完成</p><p class="value">${stats.completed}</p></div>
-                    <div class="box"><p class="label">审核中</p><p class="value">${stats.in_review}</p></div>
-                    <div class="box"><p class="label">已提交</p><p class="value">${stats.submitted}</p></div>
-                    <div class="box"><p class="label">已拒绝</p><p class="value">${stats.rejected}</p></div>
-                    <div class="box"><p class="label">累计收益</p><p class="value">¥${Number(stats.total_revenue || 0).toFixed(2)}</p></div>
-                </div>
-                <p class="muted-text">最近一次分配: ${escapeHtml(formatDateTime(stats.last_assignment_at))}</p>
-            </section>
-
-            <section class="module-card">
-                <h4>最近分配</h4>
-                ${renderAssignments(detail)}
-            </section>
-
-            <section class="module-card">
-                <h4>最近行为日志</h4>
-                ${renderActivities(detail)}
-            </section>
+                <section class="module-card">
+                    <h4>最近行为日志</h4>
+                    ${renderActivities(detail)}
+                </section>
+            </div>
         `;
     }
 
+    function isDetailModalOpen() {
+        return Boolean(detailModalEl && detailModalEl.classList.contains("is-open"));
+    }
+
+    function openDetailModal() {
+        if (!detailModalEl) return;
+        detailModalEl.classList.add("is-open");
+        detailModalEl.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+    }
+
+    function closeDetailModal() {
+        if (!detailModalEl) return;
+        detailModalEl.classList.remove("is-open");
+        detailModalEl.setAttribute("aria-hidden", "true");
+        document.body.classList.remove("modal-open");
+    }
+
+    async function ensureDetailModal() {
+        if (detailModalEl && detailContentEl) return;
+
+        const existingModal = document.getElementById("user-detail-modal");
+        const existingContent = document.getElementById("user-detail-content");
+        if (existingModal && existingContent) {
+            detailModalEl = existingModal;
+            detailContentEl = existingContent;
+            return;
+        }
+
+        let templateHtml = "";
+        try {
+            const resp = await fetch("/static/templates/admin-user-detail-modal.html", {
+                method: "GET",
+                cache: "no-store",
+            });
+            if (resp.ok) {
+                templateHtml = await resp.text();
+            }
+        } catch (error) {
+            console.warn("load modal template failed", error);
+        }
+
+        if (!templateHtml.trim()) {
+            templateHtml = `
+                <div class="modal-backdrop" id="user-detail-modal" aria-hidden="true">
+                    <div class="modal-dialog detail-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="user-detail-modal-title">
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="user-detail-modal-title">达人详情</h3>
+                            <button type="button" class="modal-close" aria-label="关闭" data-action="close-user-detail-modal">&times;</button>
+                        </div>
+                        <div id="user-detail-content" class="modal-body muted-text">请先选择达人查看详情。</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        document.body.insertAdjacentHTML("beforeend", templateHtml);
+        detailModalEl = document.getElementById("user-detail-modal");
+        detailContentEl = document.getElementById("user-detail-content");
+        if (!detailModalEl || !detailContentEl) {
+            throw new Error("详情弹窗模板加载失败");
+        }
+    }
+
     async function loadUserDetail(userId, silent = false) {
+        await ensureDetailModal();
         selectedUserId = userId;
         renderUsers();
+        openDetailModal();
 
-        if (!silent) {
-            document.getElementById("user-detail-content").innerHTML = `<div class="empty">正在加载用户详情...</div>`;
+        if (!silent && detailContentEl) {
+            detailContentEl.innerHTML = `<div class="empty">正在加载达人详情...</div>`;
         }
 
         selectedDetail = await apiRequest(`/admin/users/${userId}/detail`);
@@ -345,29 +345,10 @@
         });
 
         await loadUsers(true, true);
-        if (selectedUserId === userId) {
+        if (selectedUserId === userId && isDetailModalOpen()) {
             await loadUserDetail(userId, true);
         }
-        adminLayout.showAlert(`用户 ${userId} 审核状态已更新为 ${reviewStatusLabel(nextStatus)}`, "success");
-    }
-
-    async function handleWeightUpdate(userId) {
-        const weightInput = document.getElementById("detail-weight-input");
-        if (!weightInput) return;
-        const weight = Number(weightInput.value || 0);
-        if (!Number.isFinite(weight) || weight <= 0) {
-            adminLayout.showAlert("权重必须为大于 0 的数字");
-            return;
-        }
-
-        await apiRequest(`/admin/users/${userId}/weight`, {
-            method: "PATCH",
-            body: { weight },
-        });
-
-        await loadUsers(true, false);
-        await loadUserDetail(userId, true);
-        adminLayout.showAlert(`用户 ${userId} 权重已更新为 ${weight}`, "success");
+        adminLayout.showAlert(`达人 ${userId} 审核状态已更新为 ${reviewStatusLabel(nextStatus)}`, "success");
     }
 
     async function loadUsers(preserveDetail = true, refreshSummary = true) {
@@ -394,15 +375,20 @@
         adminLayout.setLastUpdated();
 
         if (!preserveDetail || !selectedUserId) return;
+
         const exists = users.some((item) => item.id === selectedUserId);
-        if (exists) {
+        if (exists && isDetailModalOpen()) {
             await loadUserDetail(selectedUserId, true);
             return;
         }
 
-        selectedUserId = null;
-        selectedDetail = null;
-        document.getElementById("user-detail-content").innerHTML = `<div class="empty">当前筛选条件下，已选用户不在列表中。</div>`;
+        if (!exists) {
+            selectedUserId = null;
+            selectedDetail = null;
+            if (isDetailModalOpen() && detailContentEl) {
+                closeDetailModal();
+            }
+        }
     }
 
     async function onSummaryFilterClick(status) {
@@ -417,7 +403,7 @@
         document.getElementById("reload-users").addEventListener("click", async () => {
             try {
                 await loadUsers(true, true);
-                adminLayout.showAlert("审核列表已刷新", "success");
+                adminLayout.showAlert("达人列表已刷新", "success");
             } catch (error) {
                 adminLayout.showAlert(error.message || "刷新失败");
             }
@@ -427,7 +413,7 @@
             try {
                 await loadUsers(false, false);
             } catch (error) {
-                adminLayout.showAlert(error.message || "加载用户失败");
+                adminLayout.showAlert(error.message || "加载达人失败");
             }
         });
 
@@ -481,43 +467,42 @@
             try {
                 await loadUserDetail(userId);
             } catch (error) {
-                adminLayout.showAlert(error.message || "加载用户详情失败");
+                adminLayout.showAlert(error.message || "加载达人详情失败");
             }
         });
 
-        document.getElementById("user-detail-panel").addEventListener("click", async (event) => {
-            const button = event.target.closest("button[data-action]");
-            if (!button) return;
-            const action = button.dataset.action;
-            const userId = Number(button.dataset.userId);
-            if (!userId) return;
-
-            button.disabled = true;
-            try {
-                if (action === "save-weight") {
-                    await handleWeightUpdate(userId);
-                } else if (action === "open-detail") {
-                    await loadUserDetail(userId);
-                } else if (action === "user-review") {
-                    const nextStatus = button.dataset.next;
-                    if (!nextStatus) return;
-                    await handleUserReview(userId, nextStatus);
+        if (detailModalEl) {
+            detailModalEl.addEventListener("click", (event) => {
+                if (event.target === detailModalEl) {
+                    closeDetailModal();
+                    return;
                 }
-            } catch (error) {
-                adminLayout.showAlert(error.message || "操作失败");
-            } finally {
-                button.disabled = false;
+
+                const button = event.target.closest("button[data-action]");
+                if (!button) return;
+
+                const action = button.dataset.action;
+                if (action === "close-user-detail-modal") {
+                    closeDetailModal();
+                }
+            });
+        }
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && isDetailModalOpen()) {
+                closeDetailModal();
             }
         });
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
         try {
-            await adminLayout.init({ moduleLabel: "用户审核" });
+            await adminLayout.init({ moduleLabel: "达人审核" });
+            await ensureDetailModal();
             bindEvents();
             await loadUsers(false, true);
         } catch (error) {
-            adminLayout.showAlert(error.message || "用户审核页面加载失败");
+            adminLayout.showAlert(error.message || "达人审核页面加载失败");
         }
     });
 })();

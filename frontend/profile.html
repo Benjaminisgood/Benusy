@@ -243,6 +243,26 @@
             font-size: 12px;
         }
 
+        .method-panel {
+            border: 1px solid #efefef;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: none;
+            background: #fcfcfc;
+        }
+
+        .method-panel.active {
+            display: block;
+        }
+
+        .method-description {
+            margin: 0 0 10px;
+            color: #444;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
         @media (max-width: 960px) {
             .profile-layout { grid-template-columns: 1fr; }
             .form-grid { grid-template-columns: 1fr; }
@@ -421,30 +441,79 @@
             <section class="tab-panel" id="panel-payout">
                 <h2 class="section-title">收款信息</h2>
                 <form id="payout-form">
-                    <div class="form-grid">
+                    <div class="form-group">
+                        <label for="payout-method">首选收款方式</label>
+                        <select id="payout-method" required>
+                            <option value="bank_card">银行卡</option>
+                            <option value="wechat_pay">微信支付</option>
+                            <option value="alipay">支付宝</option>
+                        </select>
+                    </div>
+
+                    <div class="method-panel" id="panel-payout-bank">
+                        <p class="method-description">
+                            银行卡结算说明：请确保实名信息准确，放款前站长会线下确认打款账户信息并完成转账。
+                        </p>
                         <div class="form-group">
-                            <label for="payout-method">收款方式</label>
-                            <select id="payout-method" required>
-                                <option value="bank_card">银行卡</option>
-                                <option value="alipay">支付宝</option>
-                                <option value="wechat_pay">微信支付</option>
-                                <option value="paypal">PayPal</option>
-                                <option value="other">其他</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="payout-account-name">收款人</label>
-                            <input id="payout-account-name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="payout-account-no">收款账号</label>
-                            <input id="payout-account-no" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="payout-account-qr">收款二维码链接</label>
-                            <input id="payout-account-qr" type="url" placeholder="https://...">
+                            <label for="payout-bank-description">补充说明（可选）</label>
+                            <textarea id="payout-bank-description" placeholder="可填写开户行或其他说明"></textarea>
                         </div>
                     </div>
+
+                    <div class="method-panel" id="panel-payout-wechat">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="payout-wechat-id">微信号</label>
+                                <input id="payout-wechat-id" placeholder="请输入微信号">
+                            </div>
+                            <div class="form-group">
+                                <label for="payout-wechat-phone">手机号</label>
+                                <input id="payout-wechat-phone" placeholder="请输入微信绑定手机号">
+                            </div>
+                        </div>
+                        <input type="hidden" id="payout-wechat-qr-url">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="payout-wechat-qr-file">微信收款码</label>
+                                <input id="payout-wechat-qr-file" type="file" accept="image/*">
+                            </div>
+                            <div class="form-group">
+                                <label for="payout-wechat-qr-preview">收款码 OSS 地址</label>
+                                <input id="payout-wechat-qr-preview" disabled placeholder="上传后自动生成">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-outline" type="button" id="upload-wechat-qr-btn">上传微信收款码</button>
+                        </div>
+                    </div>
+
+                    <div class="method-panel" id="panel-payout-alipay">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="payout-alipay-phone">手机号</label>
+                                <input id="payout-alipay-phone" placeholder="请输入支付宝绑定手机号">
+                            </div>
+                            <div class="form-group">
+                                <label for="payout-alipay-name">收款人姓名</label>
+                                <input id="payout-alipay-name" placeholder="请输入收款人姓名">
+                            </div>
+                        </div>
+                        <input type="hidden" id="payout-alipay-qr-url">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="payout-alipay-qr-file">支付宝收款码</label>
+                                <input id="payout-alipay-qr-file" type="file" accept="image/*">
+                            </div>
+                            <div class="form-group">
+                                <label for="payout-alipay-qr-preview">收款码 OSS 地址</label>
+                                <input id="payout-alipay-qr-preview" disabled placeholder="上传后自动生成">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-outline" type="button" id="upload-alipay-qr-btn">上传支付宝收款码</button>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label for="payout-note">备注</label>
                         <textarea id="payout-note"></textarea>
@@ -561,12 +630,104 @@
         `).join("");
     }
 
+    function togglePayoutPanels(method) {
+        const normalized = method || "bank_card";
+        document.querySelectorAll("#panel-payout .method-panel").forEach((panel) => panel.classList.remove("active"));
+        if (normalized === "wechat_pay") {
+            document.getElementById("panel-payout-wechat").classList.add("active");
+            return;
+        }
+        if (normalized === "alipay") {
+            document.getElementById("panel-payout-alipay").classList.add("active");
+            return;
+        }
+        document.getElementById("panel-payout-bank").classList.add("active");
+    }
+
     function fillPayout(payout) {
-        document.getElementById("payout-method").value = payout?.payout_method || "bank_card";
-        document.getElementById("payout-account-name").value = payout?.account_name || "";
-        document.getElementById("payout-account-no").value = payout?.account_no || "";
-        document.getElementById("payout-account-qr").value = payout?.account_qr_url || "";
+        const method = payout?.payout_method || "bank_card";
+        document.getElementById("payout-method").value = method;
+
+        document.getElementById("payout-bank-description").value = payout?.bank_description || "";
+
+        document.getElementById("payout-wechat-id").value = payout?.wechat_id || "";
+        document.getElementById("payout-wechat-phone").value = payout?.wechat_phone || "";
+        document.getElementById("payout-wechat-qr-url").value = payout?.wechat_qr_url || "";
+        document.getElementById("payout-wechat-qr-preview").value = payout?.wechat_qr_url || "";
+
+        document.getElementById("payout-alipay-phone").value = payout?.alipay_phone || "";
+        document.getElementById("payout-alipay-name").value = payout?.alipay_account_name || "";
+        document.getElementById("payout-alipay-qr-url").value = payout?.alipay_qr_url || "";
+        document.getElementById("payout-alipay-qr-preview").value = payout?.alipay_qr_url || "";
+
         document.getElementById("payout-note").value = payout?.note || "";
+        togglePayoutPanels(method);
+    }
+
+    function collectPayoutPayload() {
+        const method = document.getElementById("payout-method").value;
+        const payload = {
+            payout_method: method,
+            bank_description: document.getElementById("payout-bank-description").value.trim() || null,
+            wechat_id: document.getElementById("payout-wechat-id").value.trim() || null,
+            wechat_phone: document.getElementById("payout-wechat-phone").value.trim() || null,
+            wechat_qr_url: document.getElementById("payout-wechat-qr-url").value.trim() || null,
+            alipay_phone: document.getElementById("payout-alipay-phone").value.trim() || null,
+            alipay_account_name: document.getElementById("payout-alipay-name").value.trim() || null,
+            alipay_qr_url: document.getElementById("payout-alipay-qr-url").value.trim() || null,
+            note: document.getElementById("payout-note").value.trim() || null,
+        };
+
+        if (method === "wechat_pay") {
+            if (!payload.wechat_id || !payload.wechat_phone) {
+                throw new Error("微信收款方式需填写微信号和手机号");
+            }
+            if (!payload.wechat_qr_url) {
+                throw new Error("请先上传微信收款码");
+            }
+        }
+
+        if (method === "alipay") {
+            if (!payload.alipay_phone || !payload.alipay_account_name) {
+                throw new Error("支付宝收款方式需填写手机号和收款人姓名");
+            }
+            if (!payload.alipay_qr_url) {
+                throw new Error("请先上传支付宝收款码");
+            }
+        }
+
+        return payload;
+    }
+
+    async function uploadPayoutQr(method) {
+        const isWechat = method === "wechat_pay";
+        const fileInput = document.getElementById(isWechat ? "payout-wechat-qr-file" : "payout-alipay-qr-file");
+        const previewInput = document.getElementById(isWechat ? "payout-wechat-qr-preview" : "payout-alipay-qr-preview");
+        const hiddenInput = document.getElementById(isWechat ? "payout-wechat-qr-url" : "payout-alipay-qr-url");
+        const button = document.getElementById(isWechat ? "upload-wechat-qr-btn" : "upload-alipay-qr-btn");
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+            throw new Error("请选择收款码图片后再上传");
+        }
+
+        button.disabled = true;
+        const originLabel = button.textContent;
+        button.textContent = "上传中...";
+
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            const result = await apiRequest(`/users/me/payout-info/qrcode?method=${encodeURIComponent(method)}`, {
+                method: "POST",
+                body: formData,
+            });
+            hiddenInput.value = result.url || "";
+            previewInput.value = result.url || "";
+            showAlert("收款码上传成功", "success");
+        } finally {
+            button.disabled = false;
+            button.textContent = originLabel;
+        }
     }
 
     function renderHistory() {
@@ -757,19 +918,34 @@
             }
         });
 
+        document.getElementById("payout-method").addEventListener("change", (event) => {
+            togglePayoutPanels(event.target.value);
+        });
+
+        document.getElementById("upload-wechat-qr-btn").addEventListener("click", async () => {
+            clearAlert();
+            try {
+                await uploadPayoutQr("wechat_pay");
+            } catch (error) {
+                showAlert(error.message || "上传微信收款码失败");
+            }
+        });
+
+        document.getElementById("upload-alipay-qr-btn").addEventListener("click", async () => {
+            clearAlert();
+            try {
+                await uploadPayoutQr("alipay");
+            } catch (error) {
+                showAlert(error.message || "上传支付宝收款码失败");
+            }
+        });
+
         document.getElementById("payout-form").addEventListener("submit", async (event) => {
             event.preventDefault();
             clearAlert();
 
-            const payload = {
-                payout_method: document.getElementById("payout-method").value,
-                account_name: document.getElementById("payout-account-name").value.trim(),
-                account_no: document.getElementById("payout-account-no").value.trim(),
-                account_qr_url: document.getElementById("payout-account-qr").value.trim() || null,
-                note: document.getElementById("payout-note").value.trim() || null,
-            };
-
             try {
+                const payload = collectPayoutPayload();
                 await apiRequest("/users/me/payout-info", {
                     method: "PUT",
                     body: payload,

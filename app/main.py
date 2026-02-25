@@ -156,7 +156,12 @@ def admin_dashboard_page() -> HTMLResponse:
 
 @app.get("/admin/users", response_class=HTMLResponse)
 def admin_users_page() -> HTMLResponse:
-    return _serve_html("admin_users.html", "用户审核中心")
+    return _serve_html("admin_users.html", "达人审核中心")
+
+
+@app.get("/admin/settlements", response_class=HTMLResponse)
+def admin_settlements_page() -> HTMLResponse:
+    return _serve_html("admin_settlements.html", "收益结款中心")
 
 
 @app.get("/admin/reviews", response_class=HTMLResponse)

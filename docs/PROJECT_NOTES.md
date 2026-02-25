@@ -82,9 +82,10 @@ BACKEND_HOST=127.0.0.1 BACKEND_PORT=9000 ./start.sh
 
 ### 管理员侧
 
-- 任务分配逻辑：
+- 任务发布与接单规模预估：
   - `GET /api/v1/admin/tasks/{task_id}/eligible-bloggers`
-  - `POST /api/v1/admin/tasks/{task_id}/distribute`
+  - `GET /api/v1/admin/tasks/{task_id}/eligible-bloggers-summary`
+  - `POST /api/v1/admin/tasks/{task_id}/distribute` 已停用（达人改为自行接单）
 - 任务/审核/人工指标：原有 admin 接口保持可用
 
 ## 7. 前端当前行为（真实交互）
@@ -95,8 +96,8 @@ BACKEND_HOST=127.0.0.1 BACKEND_PORT=9000 ./start.sh
   - 登录页支持“记住我”：勾选后 token 长期有效（默认 30 天）且持久化；未勾选为会话级存储
 - 页面：
   - `/dashboard`：按角色加载真实统计（admin/blogger）
-    - admin 额外支持任务管理面板（新增任务 + 候选达人查看 + 自动分配 + 指定 ID 分配）
-  - `/tasks`：真实任务列表、筛选、查看详情、接受任务（admin 为只读）
+    - admin 额外支持任务管理面板（新增任务 + 候选达人规模预估，不再派单）
+  - `/tasks`：真实任务列表、筛选、查看详情、接受任务（支持接单上限与满额提示，admin 为只读）
   - `/assignments`：真实分配列表、状态筛选、提交链接、手工补录、详情（admin 为只读）
   - `/profile`：
     - 个人信息

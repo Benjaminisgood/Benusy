@@ -42,13 +42,13 @@ def _sanitize_filename(filename: str | None) -> str:
     return sanitized or "attachment"
 
 
-def _build_object_key(filename: str | None) -> str:
+def _build_object_key(filename: str | None, *, folder: str) -> str:
     prefix = settings.aliyun_oss_prefix.strip("/")
-    folder = settings.aliyun_oss_task_attachment_dir.strip("/") or "task-attachments"
+    target_folder = folder.strip("/")
     day_folder = datetime.utcnow().strftime("%Y%m%d")
     unique = uuid.uuid4().hex[:16]
     safe_name = _sanitize_filename(filename)
-    key_parts = [part for part in [prefix, folder, day_folder, f"{unique}-{safe_name}"] if part]
+    key_parts = [part for part in [prefix, target_folder, day_folder, f"{unique}-{safe_name}"] if part]
     return "/".join(key_parts)
 
 
@@ -102,19 +102,17 @@ def _should_retry_with_http(exc: Exception) -> bool:
     )
 
 
-def upload_task_attachment(file: UploadFile) -> tuple[str, str]:
-    object_key = _build_object_key(file.filename)
-    used_http_fallback = False
-
+def _upload_payload(
+    *,
+    object_key: str,
+    payload: bytes,
+    content_type: str | None = None,
+) -> tuple[str, str]:
     headers = {}
-    if file.content_type:
-        headers["Content-Type"] = file.content_type
+    if content_type:
+        headers["Content-Type"] = content_type
 
-    file.file.seek(0)
-    payload = file.file.read()
-    if payload is None:
-        payload = b""
-
+    used_http_fallback = False
     last_exc: Exception | None = None
     attempts = [
         {"force_http": False, "is_path_style": False},
@@ -147,3 +145,34 @@ def upload_task_attachment(file: UploadFile) -> tuple[str, str]:
         raise RuntimeError(f"OSS 上传失败，HTTP {result.status}")
 
     return _build_public_url(object_key, force_http=used_http_fallback), object_key
+
+
+def upload_task_attachment(file: UploadFile) -> tuple[str, str]:
+    folder = settings.aliyun_oss_task_attachment_dir.strip("/") or "task-attachments"
+    object_key = _build_object_key(file.filename, folder=folder)
+    file.file.seek(0)
+    payload = file.file.read() or b""
+    return _upload_payload(
+        object_key=object_key,
+        payload=payload,
+        content_type=file.content_type,
+    )
+
+
+def upload_payout_qr_code(
+    *,
+    file: UploadFile,
+    user_id: int,
+    method: str,
+) -> tuple[str, str]:
+    folder = settings.aliyun_oss_payout_qr_dir.strip("/") or "payout-qrcodes"
+    safe_method = method if method in {"wechat_pay", "alipay"} else "other"
+    target_folder = "/".join([folder, safe_method, f"user-{user_id}"])
+    object_key = _build_object_key(file.filename, folder=target_folder)
+    file.file.seek(0)
+    payload = file.file.read() or b""
+    return _upload_payload(
+        object_key=object_key,
+        payload=payload,
+        content_type=file.content_type,
+    )

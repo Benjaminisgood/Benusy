@@ -4,6 +4,8 @@ from typing import List, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.core.config import settings
+
 
 class Role(str, Enum):
     admin = "admin"
@@ -41,7 +43,7 @@ class User(UserBase, table=True):
     review_reason: Optional[str] = None
     reviewed_at: Optional[datetime] = None
     role: Role = Field(default=Role.blogger, index=True)
-    weight: float = Field(default=1.0, gt=0)
+    weight: float = Field(default_factory=lambda: settings.default_user_weight, gt=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

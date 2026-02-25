@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 
 from app.dependencies import get_current_approved_blogger, get_db
-from app.models import Assignment, AssignmentStatus, Task, TaskStatus, User
+from app.models import Assignment, AssignmentStatus, MetricSyncStatus, Task, TaskStatus, User
 from app.schemas.dashboard import (
     BloggerDashboardRead,
     BloggerDashboardStatsRead,
@@ -37,8 +37,8 @@ BLOGGER_FORMULAS = [
         key="total_revenue",
         label="累计收益",
         definition=(
-            "统计口径: 当前用户全部分配 revenue 累加；"
-            "单条 revenue = base_reward + engagement_score * platform_coef * user.weight"
+            "统计口径: 当前用户 metric_sync_status=manual_approved 的分配 revenue 累加；"
+            "自动同步仅作预采集，手工审核通过后计入结算收益"
         ),
     ),
 ]
@@ -53,6 +53,10 @@ def _to_activity_row(assignment: Assignment) -> DashboardActivityRead:
         status=assignment.status,
         created_at=assignment.created_at,
     )
+
+
+def _is_revenue_verified(assignment: Assignment) -> bool:
+    return assignment.metric_sync_status == MetricSyncStatus.manual_approved
 
 
 @router.get("/blogger", response_model=BloggerDashboardRead)
@@ -76,7 +80,8 @@ def get_blogger_dashboard(
     total_revenue = 0.0
 
     for assignment in assignments:
-        total_revenue += float(assignment.revenue or 0.0)
+        if _is_revenue_verified(assignment):
+            total_revenue += float(assignment.revenue or 0.0)
         if assignment.status == AssignmentStatus.accepted:
             accepted_count += 1
         elif assignment.status == AssignmentStatus.submitted:

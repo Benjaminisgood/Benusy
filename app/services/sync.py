@@ -14,6 +14,14 @@ from app.services.revenue import (
 
 
 async def sync_assignment_metrics_once(session: Session, assignment: Assignment) -> tuple[bool, str | None]:
+    if assignment.metric_sync_status in {
+        MetricSyncStatus.manual_pending_review,
+        MetricSyncStatus.manual_approved,
+        MetricSyncStatus.manual_rejected,
+    }:
+        # Handled by manual workflow; auto sync must not overwrite reviewed states.
+        return False, None
+
     if not assignment.post_link:
         assignment.metric_sync_status = MetricSyncStatus.manual_required
         assignment.last_sync_error = "Post link is missing"
@@ -37,24 +45,6 @@ async def sync_assignment_metrics_once(session: Session, assignment: Assignment)
         source=MetricSource.auto,
     )
     session.add(metric)
-
-    task = assignment.task
-    user = assignment.user
-    if task is None or user is None:
-        assignment.metric_sync_status = MetricSyncStatus.manual_required
-        assignment.last_sync_error = "Task or user context missing"
-        assignment.updated_at = datetime.utcnow()
-        return False, assignment.last_sync_error
-
-    config = get_revenue_config(session, task.platform)
-    engagement_score = calculate_engagement_score(metric, config)
-
-    assignment.revenue = calculate_revenue(
-        base_reward=task.base_reward,
-        user_weight=user.weight,
-        engagement_score=engagement_score,
-        platform_coef=config.platform_coef,
-    )
     assignment.metric_sync_status = MetricSyncStatus.normal
     assignment.last_sync_error = None
     assignment.last_synced_at = datetime.utcnow()

@@ -52,8 +52,8 @@ function assignmentStatusLabel(status) {
 
 function metricSyncStatusLabel(status) {
     const map = {
-        normal: "自动同步正常",
-        manual_required: "需手工补录",
+        normal: "自动预采集成功（待手工确认）",
+        manual_required: "自动采集异常（需手工补录）",
         manual_pending_review: "手工数据待审核",
         manual_approved: "手工数据已通过",
         manual_rejected: "手工数据被驳回",

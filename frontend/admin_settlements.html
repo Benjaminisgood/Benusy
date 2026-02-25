@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收益结款中心 - Influencer Promotion Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin-dashboard.css">
+</head>
+<body class="admin-body" data-admin-page="settlements">
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>站长控制台</h1>
+            <p>Admin Workspace</p>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="/admin/dashboard" data-nav="dashboard"><i class="fas fa-chart-pie"></i>总览</a></li>
+            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>达人审核</a></li>
+            <li><a href="/admin/settlements" data-nav="settlements"><i class="fas fa-wallet"></i>收益结款</a></li>
+            <li><a href="/admin/reviews" data-nav="reviews"><i class="fas fa-clipboard-check"></i>作业审核</a></li>
+            <li><a href="/admin/tasks" data-nav="tasks"><i class="fas fa-diagram-project"></i>任务分配</a></li>
+            <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <div class="container">
+            <header class="topbar">
+                <div>
+                    <h1 class="page-title">收益结款中心</h1>
+                    <p class="page-subtitle">统一查看达人收益、结款进度与收款信息，支持快速登记放款。</p>
+                </div>
+                <div class="header-actions">
+                    <span class="meta-chip" id="admin-user-chip">当前管理员: -</span>
+                    <span class="meta-chip" id="current-module-chip">模块: 收益结款</span>
+                    <span class="meta-chip" id="last-updated-chip">最近更新: -</span>
+                    <button class="btn btn-primary" id="reload-settlements">刷新结款数据</button>
+                </div>
+            </header>
+
+            <div id="page-alert" class="alert"></div>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">结款总览</h2>
+                        <p class="panel-subtitle">按可结算收益、已结款与待结款实时汇总</p>
+                    </div>
+                </div>
+                <div class="kpi-grid">
+                    <article class="kpi-card">
+                        <h4>达人总数</h4>
+                        <p class="kpi-value" id="set-kpi-bloggers">0</p>
+                    </article>
+                    <article class="kpi-card">
+                        <h4>可结算收益</h4>
+                        <p class="kpi-value" id="set-kpi-total-revenue">¥0.00</p>
+                    </article>
+                    <article class="kpi-card">
+                        <h4>已结款</h4>
+                        <p class="kpi-value" id="set-kpi-total-settled">¥0.00</p>
+                    </article>
+                    <article class="kpi-card">
+                        <h4>待结款</h4>
+                        <p class="kpi-value" id="set-kpi-total-pending">¥0.00</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">达人结款列表</h2>
+                        <p class="panel-subtitle">支持按状态筛选与关键字检索，点击查看详情后可直接放款</p>
+                    </div>
+                </div>
+
+                <div class="toolbar">
+                    <select class="select field-sm" id="settlement-status-filter">
+                        <option value="all">全部状态</option>
+                        <option value="pending">待结款</option>
+                        <option value="partially_paid">部分已结</option>
+                        <option value="paid_off">已结清</option>
+                        <option value="no_revenue">暂无收益</option>
+                    </select>
+                    <input class="input field-md" id="settlement-search-input" placeholder="搜索达人昵称 / 用户名 / 手机号 / 城市">
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>达人</th>
+                            <th>首选收款方式</th>
+                            <th>可结算收益</th>
+                            <th>已结款</th>
+                            <th>待结款</th>
+                            <th>结款状态</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="settlement-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<div class="modal-backdrop" id="settlement-detail-modal" aria-hidden="true">
+    <div class="modal-dialog detail-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="settlement-detail-title">
+        <div class="modal-header">
+            <h3 class="modal-title" id="settlement-detail-title">达人结款详情</h3>
+            <button type="button" class="modal-close" aria-label="关闭" data-action="close-settlement-detail">&times;</button>
+        </div>
+        <div id="settlement-detail-content" class="modal-body muted-text">请先选择达人查看详情。</div>
+    </div>
+</div>
+
+<script src="/static/js/client.js"></script>
+<script src="/static/js/admin-layout.js"></script>
+<script src="/static/js/admin-settlements.js"></script>
+</body>
+</html>

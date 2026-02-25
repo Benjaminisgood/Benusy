@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 
 from app.core.config import settings
 from app.db.database import engine
-from app.models import Assignment, AssignmentStatus
+from app.models import Assignment, AssignmentStatus, MetricSyncStatus
 from app.services.sync import sync_assignment_metrics_once
 
 
@@ -21,7 +21,11 @@ async def metrics_update_loop(stop_event: asyncio.Event) -> None:
                         Assignment.status.in_([
                             AssignmentStatus.submitted,
                             AssignmentStatus.in_review,
-                        ])
+                        ]),
+                        Assignment.metric_sync_status.in_([
+                            MetricSyncStatus.normal,
+                            MetricSyncStatus.manual_required,
+                        ]),
                     )
                 ).all()
 

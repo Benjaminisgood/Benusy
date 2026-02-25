@@ -16,7 +16,8 @@
         </div>
         <ul class="sidebar-nav">
             <li><a href="/admin/dashboard" data-nav="dashboard"><i class="fas fa-chart-pie"></i>总览</a></li>
-            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>用户审核</a></li>
+            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>达人审核</a></li>
+            <li><a href="/admin/settlements" data-nav="settlements"><i class="fas fa-wallet"></i>收益结款</a></li>
             <li><a href="/admin/reviews" data-nav="reviews"><i class="fas fa-clipboard-check"></i>作业审核</a></li>
             <li><a href="/admin/tasks" data-nav="tasks"><i class="fas fa-diagram-project"></i>任务分配</a></li>
             <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
@@ -49,11 +50,11 @@
                 </div>
                 <div class="kpi-grid">
                     <article class="kpi-card">
-                        <h4>待审核用户</h4>
+                        <h4>待审核达人</h4>
                         <p class="kpi-value" id="kpi-pending-users">0</p>
                     </article>
                     <article class="kpi-card">
-                        <h4>审核中用户</h4>
+                        <h4>审核中达人</h4>
                         <p class="kpi-value" id="kpi-under-review-users">0</p>
                     </article>
                     <article class="kpi-card">
@@ -84,8 +85,12 @@
                 </div>
                 <div class="quick-links">
                     <a class="quick-link" href="/admin/users">
-                        <h3><i class="fas fa-user-check"></i> 用户审核中心</h3>
-                        <p>查看完整达人资料、社媒账号、收款方式与历史行为后再做审核决策。</p>
+                        <h3><i class="fas fa-user-check"></i> 达人审核中心</h3>
+                        <p>审核达人资料、社媒账号与行为活跃度，支持审核流转。</p>
+                    </a>
+                    <a class="quick-link" href="/admin/settlements">
+                        <h3><i class="fas fa-wallet"></i> 收益结款中心</h3>
+                        <p>查看达人收益与结款进度，直接登记放款并留痕。</p>
                     </a>
                     <a class="quick-link" href="/admin/reviews">
                         <h3><i class="fas fa-clipboard-check"></i> 作业审核中心</h3>

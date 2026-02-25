@@ -20,6 +20,7 @@ class Task(SQLModel, table=True):
     description: str
     platform: str = Field(index=True)
     base_reward: float = Field(default=0.0, ge=0)
+    accept_limit: Optional[int] = Field(default=None, ge=1)
     instructions: str
     attachments: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     status: TaskStatus = Field(default=TaskStatus.draft, index=True)

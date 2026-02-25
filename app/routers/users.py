@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+import logging
 from typing import Type
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlmodel import Session, select
 
 from app.core.security import get_password_hash, verify_password
@@ -11,6 +12,7 @@ from app.dependencies import get_current_active_user, get_db
 from app.models import (
     DouyinAccount,
     PayoutInfo,
+    PayoutMethod,
     SocialPlatform,
     User,
     UserActivityLog,
@@ -19,6 +21,7 @@ from app.models import (
 )
 from app.schemas.user import (
     PayoutInfoRead,
+    PayoutQrUploadRead,
     PayoutInfoUpsert,
     PlatformAccountCreateRequest,
     PlatformAccountRead,
@@ -30,8 +33,10 @@ from app.schemas.user import (
     UserRead,
 )
 from app.services.activity import log_activity
+from app.services.oss import OSSConfigError, upload_payout_qr_code
 
 router = APIRouter(prefix="/users", tags=["users"])
+logger = logging.getLogger(__name__)
 
 
 PlatformModel = Type[DouyinAccount] | Type[XiaohongshuAccount] | Type[WeiboAccount]
@@ -100,6 +105,26 @@ def _all_user_accounts(db: Session, user_id: int) -> list[SocialAccountRead]:
         )
 
     return accounts
+
+
+def _legacy_payout_fields(payload: PayoutInfoUpsert) -> dict[str, str | None]:
+    if payload.payout_method == PayoutMethod.wechat_pay:
+        return {
+            "account_name": payload.wechat_id or "",
+            "account_no": payload.wechat_phone or "",
+            "account_qr_url": payload.wechat_qr_url,
+        }
+    if payload.payout_method == PayoutMethod.alipay:
+        return {
+            "account_name": payload.alipay_account_name or "",
+            "account_no": payload.alipay_phone or "",
+            "account_qr_url": payload.alipay_qr_url,
+        }
+    return {
+        "account_name": "",
+        "account_no": "",
+        "account_qr_url": None,
+    }
 
 
 @router.get("/me", response_model=UserRead)
@@ -316,11 +341,12 @@ def upsert_my_payout_info(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ) -> PayoutInfo:
+    updates = payload.model_dump()
+    updates.update(_legacy_payout_fields(payload))
     payout = db.exec(select(PayoutInfo).where(PayoutInfo.user_id == current_user.id)).first()
     if payout is None:
-        payout = PayoutInfo(user_id=current_user.id, **payload.model_dump())
+        payout = PayoutInfo(user_id=current_user.id, **updates)
     else:
-        updates = payload.model_dump()
         for field_name, value in updates.items():
             setattr(payout, field_name, value)
         payout.updated_at = datetime.utcnow()
@@ -336,6 +362,44 @@ def upsert_my_payout_info(
     db.commit()
     db.refresh(payout)
     return payout
+
+
+@router.post(
+    "/me/payout-info/qrcode",
+    response_model=PayoutQrUploadRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_my_payout_qr_code(
+    method: PayoutMethod = Query(..., description="仅支持 wechat_pay 或 alipay"),
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+) -> PayoutQrUploadRead:
+    if method not in {PayoutMethod.wechat_pay, PayoutMethod.alipay}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="仅微信或支付宝支持上传收款码",
+        )
+    if not file.filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename")
+
+    try:
+        url, object_key = upload_payout_qr_code(
+            file=file,
+            user_id=current_user.id,
+            method=method.value,
+        )
+    except OSSConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+    except Exception as exc:
+        logger.exception("upload payout qrcode failed user_id=%s filename=%s", current_user.id, file.filename)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"上传收款码到 OSS 失败: {exc}",
+        )
+    finally:
+        await file.close()
+
+    return PayoutQrUploadRead(method=method, object_key=object_key, url=url)
 
 
 @router.get("/me/history", response_model=list[UserActivityRead])

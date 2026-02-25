@@ -3,6 +3,7 @@ from .manual_metric_submission import ManualMetricSubmission, ManualMetricReview
 from .metric import Metric, MetricSource
 from .platform_metric_config import PlatformMetricConfig
 from .payout_info import PayoutInfo, PayoutMethod
+from .settlement_record import SettlementRecord
 from .social_account import (
     DouyinAccount,
     SocialPlatform,
@@ -24,6 +25,7 @@ __all__ = [
     "PlatformMetricConfig",
     "PayoutInfo",
     "PayoutMethod",
+    "SettlementRecord",
     "DouyinAccount",
     "SocialPlatform",
     "WeiboAccount",

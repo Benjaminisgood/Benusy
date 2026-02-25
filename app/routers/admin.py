@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime
 import logging
+from math import ceil
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.dependencies import get_current_active_admin_user, get_db
@@ -14,9 +16,11 @@ from app.models import (
     ManualMetricSubmission,
     MetricSyncStatus,
     PayoutInfo,
+    PayoutMethod,
     PlatformMetricConfig,
     ReviewStatus,
     Role,
+    SettlementRecord,
     Task,
     TaskStatus,
     User,
@@ -41,18 +45,25 @@ from app.schemas.platform_config import (
     PlatformMetricConfigRead,
     PlatformMetricConfigUpsert,
 )
+from app.schemas.settlement import (
+    AdminSettlementOverviewRead,
+    AdminSettlementUserDetailRead,
+    AdminSettlementUserSummaryRead,
+    SettlementRecordCreate,
+    SettlementRecordRead,
+)
 from app.schemas.task import (
     EligibleBloggerRead,
+    EligibleBloggerSummaryRead,
     TaskAttachmentUploadRead,
     TaskCreate,
     TaskDistributeRequest,
     TaskDistributeResult,
+    TaskEligibleEstimateRead,
     TaskRead,
     TaskUpdate,
 )
 from app.schemas.user import (
-    AdminUserAssignmentSnapshotRead,
-    AdminUserAssignmentStatsRead,
     AdminUserDetailRead,
     AdminUserReviewSummaryRead,
     UserRead,
@@ -60,7 +71,7 @@ from app.schemas.user import (
     UserWeightUpdate,
 )
 from app.services.activity import log_activity
-from app.services.distribution import distribute_task, list_eligible_bloggers, normalize_platform
+from app.services.distribution import list_eligible_bloggers, normalize_platform
 from app.services.oss import OSSConfigError, upload_task_attachment
 from app.services.sync import apply_manual_metric
 
@@ -70,8 +81,8 @@ logger = logging.getLogger(__name__)
 ADMIN_FORMULAS = [
     DashboardMetricFormulaRead(
         key="pending_users",
-        label="待审核用户",
-        definition="统计口径: role=blogger 且 review_status in [pending, under_review] 的用户总数",
+        label="待审核达人",
+        definition="统计口径: role=blogger 且 review_status in [pending, under_review] 的达人总数",
     ),
     DashboardMetricFormulaRead(
         key="pending_assignment_reviews",
@@ -87,8 +98,8 @@ ADMIN_FORMULAS = [
         key="total_revenue",
         label="平台累计收益",
         definition=(
-            "统计口径: assignments.revenue 累加；"
-            "单条 revenue = base_reward + engagement_score * platform_coef * user.weight"
+            "统计口径: 仅统计 metric_sync_status=manual_approved 的 assignments.revenue；"
+            "自动同步仅作预采集，手工审核通过后才计入结算收益"
         ),
     ),
 ]
@@ -120,6 +131,111 @@ def _to_admin_activity(assignment: Assignment) -> DashboardActivityRead:
     )
 
 
+def _count_active_assignments_map(db: Session, task_ids: list[int]) -> dict[int, int]:
+    if not task_ids:
+        return {}
+
+    rows = db.exec(
+        select(Assignment.task_id, func.count(Assignment.id))
+        .where(Assignment.task_id.in_(task_ids))
+        .where(Assignment.status != AssignmentStatus.cancelled)
+        .group_by(Assignment.task_id)
+    ).all()
+    return {int(task_id): int(count) for task_id, count in rows}
+
+
+def _to_task_read(task: Task, accepted_count: int) -> TaskRead:
+    remaining_slots = None
+    is_full = False
+    if task.accept_limit is not None:
+        remaining_slots = max(task.accept_limit - accepted_count, 0)
+        is_full = remaining_slots == 0
+
+    return TaskRead(
+        id=task.id or 0,
+        title=task.title,
+        description=task.description,
+        platform=task.platform,
+        base_reward=task.base_reward,
+        accept_limit=task.accept_limit,
+        instructions=task.instructions,
+        attachments=list(task.attachments or []),
+        status=task.status,
+        accepted_count=accepted_count,
+        remaining_slots=remaining_slots,
+        is_full=is_full,
+        created_at=task.created_at,
+        updated_at=task.updated_at,
+    )
+
+
+def _is_revenue_verified(assignment: Assignment) -> bool:
+    return assignment.metric_sync_status == MetricSyncStatus.manual_approved
+
+
+def _has_valid_payout_info(payout_info: PayoutInfo | None) -> bool:
+    if payout_info is None:
+        return False
+
+    method = payout_info.payout_method.value
+    if method == "bank_card":
+        return True
+    if method == "wechat_pay":
+        return bool(
+            (payout_info.wechat_id or "").strip()
+            and (payout_info.wechat_phone or "").strip()
+            and (payout_info.wechat_qr_url or "").strip()
+        )
+    if method == "alipay":
+        return bool(
+            (payout_info.alipay_phone or "").strip()
+            and (payout_info.alipay_account_name or "").strip()
+            and (payout_info.alipay_qr_url or "").strip()
+        )
+
+    # Fallback for historical generic payout fields.
+    return bool((payout_info.account_no or "").strip())
+
+
+def _settlement_status(total_revenue: float, total_settled: float) -> str:
+    pending = round(max(total_revenue - total_settled, 0.0), 2)
+    if pending <= 0 and total_settled > 0:
+        return "paid_off"
+    if pending > 0 and total_settled > 0:
+        return "partially_paid"
+    if pending > 0:
+        return "pending"
+    return "no_revenue"
+
+
+def _build_settlement_summary(
+    *,
+    user: User,
+    payout_info: PayoutInfo | None,
+    total_revenue: float,
+    total_settled: float,
+    last_paid_at: datetime | None,
+) -> AdminSettlementUserSummaryRead:
+    user_id = user.id or 0
+    pending = round(max(total_revenue - total_settled, 0.0), 2)
+    display_name = (user.display_name or "").strip() or user.username
+    return AdminSettlementUserSummaryRead(
+        user_id=user_id,
+        display_name=display_name,
+        username=user.username,
+        phone=user.phone,
+        city=user.city,
+        review_status=user.review_status.value,
+        preferred_method=payout_info.payout_method if payout_info else PayoutMethod.bank_card,
+        has_valid_payout_info=_has_valid_payout_info(payout_info),
+        total_revenue=round(float(total_revenue), 2),
+        total_settled=round(float(total_settled), 2),
+        pending_settlement=pending,
+        settlement_status=_settlement_status(total_revenue, total_settled),
+        last_paid_at=last_paid_at,
+    )
+
+
 def _normalize_attachment_urls(urls: list[str] | None) -> list[str]:
     if not urls:
         return []
@@ -140,6 +256,34 @@ def _normalize_attachment_urls(urls: list[str] | None) -> list[str]:
         seen.add(value)
         normalized.append(value)
     return normalized
+
+
+def _estimate_recommended_scale(eligible_count: int) -> tuple[int, int]:
+    if eligible_count <= 0:
+        return 0, 0
+    if eligible_count < 30:
+        low = max(1, ceil(eligible_count * 0.5))
+        high = eligible_count
+        return low, high
+    if eligible_count <= 120:
+        low = max(12, ceil(eligible_count * 0.4))
+        high = min(eligible_count, max(low, ceil(eligible_count * 0.7)))
+        return low, high
+    low = max(30, ceil(eligible_count * 0.25))
+    high = min(eligible_count, max(low, ceil(eligible_count * 0.5)))
+    return low, high
+
+
+def _estimate_saturation_label(saturation_rate: float, eligible_count: int) -> str:
+    if eligible_count <= 0:
+        return "暂无供给"
+    if saturation_rate < 0.3:
+        return "偏低（覆盖不足）"
+    if saturation_rate <= 0.65:
+        return "健康（供给充足）"
+    if saturation_rate <= 0.85:
+        return "偏高（建议留余量）"
+    return "高饱和（建议分批放量）"
 
 
 @router.get("/dashboard", response_model=AdminDashboardRead)
@@ -183,9 +327,16 @@ def get_admin_dashboard(
     )
 
     revenue = AdminRevenueStatsRead(
-        total_revenue=round(sum(float(item.revenue or 0.0) for item in assignments), 2),
+        total_revenue=round(
+            sum(float(item.revenue or 0.0) for item in assignments if _is_revenue_verified(item)),
+            2,
+        ),
         completed_revenue=round(
-            sum(float(item.revenue or 0.0) for item in assignments if item.status == AssignmentStatus.completed),
+            sum(
+                float(item.revenue or 0.0)
+                for item in assignments
+                if item.status == AssignmentStatus.completed and _is_revenue_verified(item)
+            ),
             2,
         ),
     )
@@ -252,8 +403,6 @@ def get_user_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     _ensure_user_relations_loaded(user)
-
-    payout_info = db.exec(select(PayoutInfo).where(PayoutInfo.user_id == user_id)).first()
     activities = db.exec(
         select(UserActivityLog)
         .where(UserActivityLog.user_id == user_id)
@@ -261,49 +410,242 @@ def get_user_detail(
         .limit(20)
     ).all()
 
-    assignments = db.exec(
-        select(Assignment)
-        .where(Assignment.user_id == user_id)
-        .order_by(Assignment.created_at.desc())
-    ).all()
-    for assignment in assignments:
-        _ensure_assignment_relations_loaded(assignment)
-
-    assignment_stats = AdminUserAssignmentStatsRead(
-        total=len(assignments),
-        accepted=sum(1 for item in assignments if item.status == AssignmentStatus.accepted),
-        submitted=sum(1 for item in assignments if item.status == AssignmentStatus.submitted),
-        in_review=sum(1 for item in assignments if item.status == AssignmentStatus.in_review),
-        completed=sum(1 for item in assignments if item.status == AssignmentStatus.completed),
-        rejected=sum(1 for item in assignments if item.status == AssignmentStatus.rejected),
-        cancelled=sum(1 for item in assignments if item.status == AssignmentStatus.cancelled),
-        total_revenue=round(sum(float(item.revenue or 0.0) for item in assignments), 2),
-        last_assignment_at=assignments[0].created_at if assignments else None,
-    )
-
-    recent_assignments = [
-        AdminUserAssignmentSnapshotRead(
-            assignment_id=assignment.id or 0,
-            task_id=assignment.task_id,
-            task_title=assignment.task.title if assignment.task else f"任务#{assignment.task_id}",
-            status=assignment.status,
-            metric_sync_status=assignment.metric_sync_status,
-            revenue=float(assignment.revenue or 0.0),
-            post_link=assignment.post_link,
-            created_at=assignment.created_at,
-            updated_at=assignment.updated_at,
-            last_synced_at=assignment.last_synced_at,
-        )
-        for assignment in assignments[:12]
-    ]
-
     return AdminUserDetailRead(
         user=user,
-        payout_info=payout_info,
-        assignment_stats=assignment_stats,
-        recent_assignments=recent_assignments,
         recent_activities=activities,
     )
+
+
+@router.get("/settlements/summary", response_model=AdminSettlementOverviewRead)
+def get_settlement_summary(
+    keyword: str | None = Query(default=None),
+    status_filter: str = Query(default="all", alias="status"),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin_user),
+) -> AdminSettlementOverviewRead:
+    del current_admin
+
+    bloggers = db.exec(
+        select(User)
+        .where(User.role == Role.blogger)
+        .order_by(User.created_at.desc())
+    ).all()
+
+    normalized_keyword = (keyword or "").strip().lower()
+    if normalized_keyword:
+        bloggers = [
+            user
+            for user in bloggers
+            if normalized_keyword in " ".join(
+                [
+                    (user.display_name or ""),
+                    user.username,
+                    (user.phone or ""),
+                    (user.email or ""),
+                    (user.city or ""),
+                    (user.category or ""),
+                ]
+            ).lower()
+        ]
+
+    user_ids = [user.id for user in bloggers if user.id is not None]
+    payout_map: dict[int, PayoutInfo] = {}
+    if user_ids:
+        payouts = db.exec(select(PayoutInfo).where(PayoutInfo.user_id.in_(user_ids))).all()
+        payout_map = {item.user_id: item for item in payouts}
+
+    revenue_map: dict[int, float] = {}
+    if user_ids:
+        revenue_rows = db.exec(
+            select(
+                Assignment.user_id,
+                func.coalesce(func.sum(Assignment.revenue), 0.0),
+            )
+            .where(Assignment.user_id.in_(user_ids))
+            .where(Assignment.status == AssignmentStatus.completed)
+            .where(Assignment.metric_sync_status == MetricSyncStatus.manual_approved)
+            .group_by(Assignment.user_id)
+        ).all()
+        revenue_map = {int(user_id): float(total or 0.0) for user_id, total in revenue_rows}
+
+    settled_map: dict[int, tuple[float, datetime | None]] = {}
+    if user_ids:
+        settled_rows = db.exec(
+            select(
+                SettlementRecord.user_id,
+                func.coalesce(func.sum(SettlementRecord.amount), 0.0),
+                func.max(SettlementRecord.paid_at),
+            )
+            .where(SettlementRecord.user_id.in_(user_ids))
+            .group_by(SettlementRecord.user_id)
+        ).all()
+        settled_map = {
+            int(user_id): (float(total_amount or 0.0), last_paid_at)
+            for user_id, total_amount, last_paid_at in settled_rows
+        }
+
+    summaries = []
+    for user in bloggers:
+        user_id = user.id or 0
+        total_revenue = revenue_map.get(user_id, 0.0)
+        total_settled, last_paid_at = settled_map.get(user_id, (0.0, None))
+        summaries.append(
+            _build_settlement_summary(
+                user=user,
+                payout_info=payout_map.get(user_id),
+                total_revenue=total_revenue,
+                total_settled=total_settled,
+                last_paid_at=last_paid_at,
+            )
+        )
+
+    if status_filter != "all":
+        summaries = [item for item in summaries if item.settlement_status == status_filter]
+
+    summaries.sort(
+        key=lambda item: (
+            -item.pending_settlement,
+            -item.total_revenue,
+            item.user_id,
+        )
+    )
+
+    total_revenue = round(sum(item.total_revenue for item in summaries), 2)
+    total_settled = round(sum(item.total_settled for item in summaries), 2)
+    total_pending = round(sum(item.pending_settlement for item in summaries), 2)
+    pending_blogger_count = sum(1 for item in summaries if item.pending_settlement > 0)
+
+    return AdminSettlementOverviewRead(
+        generated_at=datetime.utcnow(),
+        blogger_count=len(summaries),
+        total_revenue=total_revenue,
+        total_settled=total_settled,
+        total_pending=total_pending,
+        pending_blogger_count=pending_blogger_count,
+        users=summaries,
+    )
+
+
+@router.get("/settlements/{user_id}", response_model=AdminSettlementUserDetailRead)
+def get_settlement_user_detail(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin_user),
+) -> AdminSettlementUserDetailRead:
+    del current_admin
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if user.role != Role.blogger:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only blogger is supported")
+
+    _ensure_user_relations_loaded(user)
+    payout_info = db.exec(select(PayoutInfo).where(PayoutInfo.user_id == user_id)).first()
+
+    revenue_total = db.exec(
+        select(func.coalesce(func.sum(Assignment.revenue), 0.0))
+        .where(Assignment.user_id == user_id)
+        .where(Assignment.status == AssignmentStatus.completed)
+        .where(Assignment.metric_sync_status == MetricSyncStatus.manual_approved)
+    ).one()
+    settled_row = db.exec(
+        select(
+            func.coalesce(func.sum(SettlementRecord.amount), 0.0),
+            func.max(SettlementRecord.paid_at),
+        ).where(SettlementRecord.user_id == user_id)
+    ).one()
+    total_settled = float(settled_row[0] or 0.0)
+    last_paid_at = settled_row[1]
+
+    summary = _build_settlement_summary(
+        user=user,
+        payout_info=payout_info,
+        total_revenue=float(revenue_total or 0.0),
+        total_settled=total_settled,
+        last_paid_at=last_paid_at,
+    )
+
+    records = db.exec(
+        select(SettlementRecord)
+        .where(SettlementRecord.user_id == user_id)
+        .order_by(SettlementRecord.paid_at.desc())
+        .limit(100)
+    ).all()
+    activities = db.exec(
+        select(UserActivityLog)
+        .where(UserActivityLog.user_id == user_id)
+        .order_by(UserActivityLog.created_at.desc())
+        .limit(20)
+    ).all()
+
+    return AdminSettlementUserDetailRead(
+        user=user,
+        payout_info=payout_info,
+        summary=summary,
+        recent_records=records,
+        recent_activities=activities,
+    )
+
+
+@router.post(
+    "/settlements/{user_id}/records",
+    response_model=SettlementRecordRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_settlement_record(
+    user_id: int,
+    payload: SettlementRecordCreate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin_user),
+) -> SettlementRecord:
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if user.role != Role.blogger:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only blogger is supported")
+    if current_admin.id is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Invalid admin identity")
+
+    revenue_total = db.exec(
+        select(func.coalesce(func.sum(Assignment.revenue), 0.0))
+        .where(Assignment.user_id == user_id)
+        .where(Assignment.status == AssignmentStatus.completed)
+        .where(Assignment.metric_sync_status == MetricSyncStatus.manual_approved)
+    ).one()
+    settled_total = db.exec(
+        select(func.coalesce(func.sum(SettlementRecord.amount), 0.0)).where(SettlementRecord.user_id == user_id)
+    ).one()
+    pending = round(max(float(revenue_total or 0.0) - float(settled_total or 0.0), 0.0), 2)
+    if pending <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="当前无待结款金额")
+
+    amount = round(float(payload.amount), 2)
+    if amount <= 0:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="amount must be > 0")
+    if amount > pending:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"放款金额不能超过待结款金额 {pending:.2f}",
+        )
+
+    record = SettlementRecord(
+        user_id=user_id,
+        admin_id=current_admin.id,
+        amount=amount,
+        note=payload.note,
+        paid_at=datetime.utcnow(),
+    )
+    db.add(record)
+    log_activity(
+        db,
+        user_id=user_id,
+        action_type="admin_settlement_paid",
+        title="管理员登记放款",
+        detail=f"操作人ID: {current_admin.id}; 放款金额: {amount:.2f}; 备注: {payload.note or '-'}",
+    )
+    db.commit()
+    db.refresh(record)
+    return record
 
 
 @router.patch("/users/{user_id}/review", response_model=UserRead)
@@ -336,10 +678,12 @@ def review_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Under-review users can only be approved or rejected",
         )
-    if user.review_status == ReviewStatus.approved and payload.review_status != ReviewStatus.approved:
+    if user.review_status == ReviewStatus.approved and payload.review_status not in {
+        ReviewStatus.under_review,
+    }:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Approved users cannot be moved to another review state",
+            detail="Approved users can only return to under_review",
         )
     if user.review_status == ReviewStatus.rejected and payload.review_status != ReviewStatus.under_review:
         raise HTTPException(
@@ -355,7 +699,7 @@ def review_user(
 
     previous_status = user.review_status
     user.review_status = payload.review_status
-    user.review_reason = payload.review_reason
+    user.review_reason = payload.review_reason if payload.review_status == ReviewStatus.rejected else None
     user.reviewed_at = datetime.utcnow()
     user.updated_at = datetime.utcnow()
     db.add(user)
@@ -408,12 +752,15 @@ def list_tasks(
     status_filter: TaskStatus | None = Query(default=None, alias="status"),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_active_admin_user),
-) -> list[Task]:
+) -> list[TaskRead]:
     del current_admin
     statement = select(Task).order_by(Task.created_at.desc())
     if status_filter is not None:
         statement = statement.where(Task.status == status_filter)
-    return db.exec(statement).all()
+    tasks = db.exec(statement).all()
+    task_ids = [task.id for task in tasks if task.id is not None]
+    count_map = _count_active_assignments_map(db, task_ids)
+    return [_to_task_read(task, count_map.get(task.id or 0, 0)) for task in tasks]
 
 
 @router.post("/tasks", response_model=TaskRead, status_code=status.HTTP_201_CREATED)
@@ -428,6 +775,7 @@ def create_task(
         description=payload.description,
         platform=payload.platform,
         base_reward=payload.base_reward,
+        accept_limit=payload.accept_limit,
         instructions=payload.instructions,
         attachments=_normalize_attachment_urls(payload.attachments),
         status=payload.status,
@@ -530,6 +878,66 @@ def cancel_task(
     return task
 
 
+@router.get("/tasks/eligible-bloggers-estimate", response_model=TaskEligibleEstimateRead)
+def estimate_task_eligible_bloggers(
+    platform: str = Query(default="douyin"),
+    accept_limit: int | None = Query(default=None, ge=1, le=50000),
+    preview_limit: int = Query(default=12, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin_user),
+) -> TaskEligibleEstimateRead:
+    del current_admin
+    normalized_platform = normalize_platform(platform)
+    if normalized_platform is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Unsupported platform. Supported values: douyin, xiaohongshu, weibo",
+        )
+
+    task_for_estimate = Task(
+        title="实时预估",
+        description="",
+        platform=normalized_platform.value,
+        base_reward=0.0,
+        instructions="",
+        attachments=[],
+        status=TaskStatus.draft,
+    )
+    eligible = list_eligible_bloggers(db, task_for_estimate)
+    preview_users = eligible[:preview_limit]
+    preview_bloggers = [
+        EligibleBloggerRead(
+            user_id=user.id,
+            username=user.username,
+            display_name=user.display_name,
+            follower_total=user.follower_total,
+            avg_views=user.avg_views,
+            weight=user.weight,
+            platform=normalized_platform.value,
+        )
+        for user in preview_users
+        if user.id is not None
+    ]
+
+    eligible_count = len(eligible)
+    estimated_accept_count = min(eligible_count, accept_limit) if accept_limit is not None else eligible_count
+    saturation_rate = (estimated_accept_count / eligible_count) if eligible_count > 0 else 0.0
+    recommended_scale_min, recommended_scale_max = _estimate_recommended_scale(eligible_count)
+    saturation_label = _estimate_saturation_label(saturation_rate, eligible_count)
+    return TaskEligibleEstimateRead(
+        platform=normalized_platform.value,
+        eligible_count=eligible_count,
+        preview_limit=preview_limit,
+        input_accept_limit=accept_limit,
+        estimated_accept_count=estimated_accept_count,
+        saturation_rate=round(saturation_rate, 4),
+        saturation_label=saturation_label,
+        recommended_scale_min=recommended_scale_min,
+        recommended_scale_max=recommended_scale_max,
+        preview_bloggers=preview_bloggers,
+    )
+
+
 @router.get("/tasks/{task_id}/eligible-bloggers", response_model=list[EligibleBloggerRead])
 def list_task_eligible_bloggers(
     task_id: int,
@@ -544,7 +952,7 @@ def list_task_eligible_bloggers(
     if task.status != TaskStatus.published:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only published tasks can be distributed",
+            detail="Only published tasks can be queried",
         )
 
     platform = normalize_platform(task.platform)
@@ -565,6 +973,49 @@ def list_task_eligible_bloggers(
     ]
 
 
+@router.get("/tasks/{task_id}/eligible-bloggers-summary", response_model=EligibleBloggerSummaryRead)
+def get_task_eligible_bloggers_summary(
+    task_id: int,
+    preview_limit: int = Query(default=20, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_active_admin_user),
+) -> EligibleBloggerSummaryRead:
+    del current_admin
+    task = db.get(Task, task_id)
+    if not task:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+    if task.status != TaskStatus.published:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only published tasks can be queried",
+        )
+
+    platform = normalize_platform(task.platform)
+    platform_value = platform.value if platform is not None else task.platform
+    eligible = list_eligible_bloggers(db, task)
+    preview_users = eligible[:preview_limit]
+    preview_bloggers = [
+        EligibleBloggerRead(
+            user_id=user.id,
+            username=user.username,
+            display_name=user.display_name,
+            follower_total=user.follower_total,
+            avg_views=user.avg_views,
+            weight=user.weight,
+            platform=platform_value,
+        )
+        for user in preview_users
+        if user.id is not None
+    ]
+    return EligibleBloggerSummaryRead(
+        task_id=task.id or 0,
+        platform=platform_value,
+        eligible_count=len(eligible),
+        preview_limit=preview_limit,
+        preview_bloggers=preview_bloggers,
+    )
+
+
 @router.post("/tasks/{task_id}/distribute", response_model=TaskDistributeResult)
 def distribute_task_to_bloggers(
     task_id: int,
@@ -573,50 +1024,13 @@ def distribute_task_to_bloggers(
     current_admin: User = Depends(get_current_active_admin_user),
 ) -> TaskDistributeResult:
     del current_admin
+    del payload
     task = db.get(Task, task_id)
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
-    if task.status != TaskStatus.published:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only published tasks can be distributed",
-        )
-
-    eligible = list_eligible_bloggers(db, task)
-    eligible_ids = {user.id for user in eligible if user.id is not None}
-
-    if payload.user_ids:
-        seen: set[int] = set()
-        target_user_ids: list[int] = []
-        for user_id in payload.user_ids:
-            if user_id in seen:
-                continue
-            seen.add(user_id)
-            target_user_ids.append(user_id)
-
-        invalid = [user_id for user_id in target_user_ids if user_id not in eligible_ids]
-        if invalid:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Users not eligible for task platform: {invalid}",
-            )
-    else:
-        target_user_ids = [user.id for user in eligible[: payload.limit] if user.id is not None]
-
-    if not target_user_ids:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No eligible bloggers found")
-
-    created_count, skipped_existing_count = distribute_task(
-        db,
-        task,
-        target_user_ids=target_user_ids,
-    )
-    db.commit()
-    return TaskDistributeResult(
-        task_id=task.id,
-        created_count=created_count,
-        skipped_existing_count=skipped_existing_count,
-        target_user_ids=target_user_ids,
+    raise HTTPException(
+        status_code=status.HTTP_410_GONE,
+        detail="Task distribution is disabled. Bloggers should accept published tasks themselves.",
     )
 
 
@@ -675,6 +1089,11 @@ def approve_assignment(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Only submitted or in_review assignments can be approved",
+        )
+    if assignment.metric_sync_status != MetricSyncStatus.manual_approved:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Manual metrics must be approved before assignment approval",
         )
 
     assignment.status = AssignmentStatus.completed

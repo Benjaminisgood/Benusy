@@ -11,10 +11,15 @@
 
         body.innerHTML = reviewAssignments.map((assignment) => {
             const actions = [];
+            const manualReady = assignment.metric_sync_status === "manual_approved";
             if (assignment.status === "submitted") {
                 actions.push(`<button class="mini-btn primary" data-action="assignment-start-review" data-assignment-id="${assignment.id}">进入审核</button>`);
             }
-            actions.push(`<button class="mini-btn success" data-action="assignment-approve" data-assignment-id="${assignment.id}">通过</button>`);
+            if (manualReady) {
+                actions.push(`<button class="mini-btn success" data-action="assignment-approve" data-assignment-id="${assignment.id}">通过</button>`);
+            } else {
+                actions.push(`<button class="mini-btn muted" disabled title="需先手工指标审核通过">待手工通过</button>`);
+            }
             actions.push(`<button class="mini-btn danger" data-action="assignment-reject" data-assignment-id="${assignment.id}">驳回</button>`);
 
             return `
@@ -64,6 +69,11 @@
         }
 
         if (action === "assignment-approve") {
+            const assignment = reviewAssignments.find((item) => item.id === assignmentId);
+            if (assignment && assignment.metric_sync_status !== "manual_approved") {
+                adminLayout.showAlert(`分配 ${assignmentId} 尚未完成手工数据审核，不能通过`);
+                return;
+            }
             await apiRequest(`/admin/assignments/${assignmentId}/approve`, { method: "POST" });
             await loadReviewQueues();
             adminLayout.showAlert(`分配 ${assignmentId} 已审核通过`, "success");
