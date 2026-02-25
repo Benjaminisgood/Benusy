@@ -10,12 +10,13 @@
 
 默认地址：
 
-- 后端 API + 前端页面同源：`http://127.0.0.1:8000`
+- 后端 API + 前端页面同源：`http://0.0.0.0:8000`（可被局域网/外网访问，取决于服务器防火墙与安全组）
+- 运行环境默认：`ENVIRONMENT=production`、`DEBUG=0`
 
 可覆盖：
 
 ```bash
-BACKEND_HOST=127.0.0.1 BACKEND_PORT=9000 ./start.sh
+BACKEND_HOST=127.0.0.1 BACKEND_PORT=9000 ENVIRONMENT=development DEBUG=1 ./start.sh
 ```
 
 按 `Ctrl+C` 停止。

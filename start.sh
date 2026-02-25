@@ -6,14 +6,21 @@ RUN_DIR="${ROOT_DIR}/.run"
 VENV_DIR="${ROOT_DIR}/.venv"
 PID_FILE="${RUN_DIR}/backend.pid"
 PORT_FILE="${RUN_DIR}/backend.port"
+HOST_FILE="${RUN_DIR}/backend.host"
 LOG_FILE="${RUN_DIR}/backend.log"
 REQ_FILE="${ROOT_DIR}/requirements.txt"
 REQ_HASH_FILE="${RUN_DIR}/requirements.sha256"
 
-BACKEND_HOST="${BACKEND_HOST:-127.0.0.1}"
+BACKEND_HOST="${BACKEND_HOST:-0.0.0.0}"
 DEFAULT_PORT="${BACKEND_PORT:-${PORT:-8000}}"
 PORT_SEARCH_LIMIT="${PORT_SEARCH_LIMIT:-100}"
-AUTO_INSTALL_MISSING_MODULES="${AUTO_INSTALL_MISSING_MODULES:-1}"
+APP_ENV="${APP_ENV:-${ENVIRONMENT:-production}}"
+APP_DEBUG="${APP_DEBUG:-${DEBUG:-0}}"
+BACKEND_WORKERS="${BACKEND_WORKERS:-1}"
+UVICORN_LOG_LEVEL="${UVICORN_LOG_LEVEL:-info}"
+UVICORN_PROXY_HEADERS="${UVICORN_PROXY_HEADERS:-1}"
+FORWARDED_ALLOW_IPS="${FORWARDED_ALLOW_IPS:-*}"
+AUTO_INSTALL_MISSING_MODULES="${AUTO_INSTALL_MISSING_MODULES:-0}"
 
 mkdir -p "${RUN_DIR}"
 
@@ -31,8 +38,15 @@ Commands:
   logs     Tail backend logs
 
 Env vars:
-  BACKEND_HOST       Default 127.0.0.1
+  BACKEND_HOST       Default 0.0.0.0 (allow external access)
   BACKEND_PORT/PORT  Preferred port (auto-fallback if occupied)
+  ENVIRONMENT        Default production
+  DEBUG              Default 0
+  BACKEND_WORKERS    Default 1 (recommended; app includes in-process scheduler)
+  UVICORN_LOG_LEVEL  Default info
+  UVICORN_PROXY_HEADERS 1 to trust reverse-proxy headers, default 1
+  FORWARDED_ALLOW_IPS Default * (effective when UVICORN_PROXY_HEADERS=1)
+  AUTO_INSTALL_MISSING_MODULES Default 0 (set 1 for dev convenience)
   PORT_SEARCH_LIMIT  Number of ports to try, default 100
   FORCE_INSTALL=1    Force reinstall requirements
 EOF
@@ -99,16 +113,64 @@ ensure_deps() {
   fi
 }
 
+export_runtime_env() {
+  export ENVIRONMENT="${APP_ENV}"
+  export DEBUG="${APP_DEBUG}"
+}
+
+show_runtime_summary() {
+  echo "Runtime config: ENVIRONMENT=${APP_ENV} DEBUG=${APP_DEBUG} HOST=${BACKEND_HOST} WORKERS=${BACKEND_WORKERS}"
+  if [[ "${BACKEND_WORKERS}" != "1" ]]; then
+    echo "Warning: BACKEND_WORKERS=${BACKEND_WORKERS}. The app has an in-process scheduler; keep 1 worker unless scheduler is externalized."
+  fi
+  if [[ "${APP_ENV}" == "production" && "${SECRET_KEY:-development-secret-key}" == "development-secret-key" ]]; then
+    echo "Warning: SECRET_KEY is using the default development value. Set a strong SECRET_KEY in production."
+  fi
+}
+
+build_uvicorn_cmd() {
+  local host="$1"
+  local port="$2"
+
+  UVICORN_CMD=(
+    "${VENV_PYTHON}" -m uvicorn app.main:app
+    --host "${host}"
+    --port "${port}"
+    --workers "${BACKEND_WORKERS}"
+    --log-level "${UVICORN_LOG_LEVEL}"
+  )
+
+  if [[ "${UVICORN_PROXY_HEADERS}" == "1" ]]; then
+    UVICORN_CMD+=(--proxy-headers --forwarded-allow-ips "${FORWARDED_ALLOW_IPS}")
+  fi
+}
+
+pid_is_backend() {
+  local pid="$1"
+  local cmdline
+
+  if [[ -z "${pid}" ]] || ! kill -0 "${pid}" 2>/dev/null; then
+    return 1
+  fi
+
+  cmdline="$(ps -p "${pid}" -o command= 2>/dev/null || true)"
+  if [[ "${cmdline}" == *"uvicorn"* && "${cmdline}" == *"app.main:app"* ]]; then
+    return 0
+  fi
+
+  return 1
+}
+
 is_running() {
   if [[ ! -f "${PID_FILE}" ]]; then
     return 1
   fi
   local pid
   pid="$(cat "${PID_FILE}")"
-  if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
+  if pid_is_backend "${pid}"; then
     return 0
   fi
-  rm -f "${PID_FILE}" "${PORT_FILE}"
+  rm -f "${PID_FILE}" "${PORT_FILE}" "${HOST_FILE}"
   return 1
 }
 
@@ -159,20 +221,22 @@ show_start_failure_hint() {
 }
 
 find_free_port() {
-  local start_port="$1"
-  local tries="$2"
-  "${BASE_PYTHON}" - <<'PY' "${start_port}" "${tries}"
+  local host="$1"
+  local start_port="$2"
+  local tries="$3"
+  "${BASE_PYTHON}" - <<'PY' "${host}" "${start_port}" "${tries}"
 import socket
 import sys
 
-port = int(sys.argv[1])
-tries = int(sys.argv[2])
+host = sys.argv[1]
+port = int(sys.argv[2])
+tries = int(sys.argv[3])
 
 for p in range(port, port + tries):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
-        s.bind(("127.0.0.1", p))
+        s.bind((host, p))
     except OSError:
         s.close()
         continue
@@ -186,17 +250,20 @@ PY
 
 start_backend() {
   if is_running; then
-    local pid port
+    local pid port host
     pid="$(cat "${PID_FILE}")"
     port="$(cat "${PORT_FILE}" 2>/dev/null || echo "${DEFAULT_PORT}")"
-    echo "Backend already running (PID ${pid}): http://${BACKEND_HOST}:${port}"
+    host="$(cat "${HOST_FILE}" 2>/dev/null || echo "${BACKEND_HOST}")"
+    echo "Backend already running (PID ${pid}): http://${host}:${port}"
     return 0
   fi
 
   ensure_deps
+  export_runtime_env
+  show_runtime_summary
 
   local port
-  if ! port="$(find_free_port "${DEFAULT_PORT}" "${PORT_SEARCH_LIMIT}")"; then
+  if ! port="$(find_free_port "${BACKEND_HOST}" "${DEFAULT_PORT}" "${PORT_SEARCH_LIMIT}")"; then
     echo "Error: no free port found from ${DEFAULT_PORT} (+${PORT_SEARCH_LIMIT})." >&2
     exit 1
   fi
@@ -209,9 +276,11 @@ start_backend() {
   for attempt in 1 2; do
     (
       cd "${ROOT_DIR}"
-      nohup "${VENV_PYTHON}" -m uvicorn app.main:app --host "${BACKEND_HOST}" --port "${port}" >> "${LOG_FILE}" 2>&1 &
+      build_uvicorn_cmd "${BACKEND_HOST}" "${port}"
+      nohup "${UVICORN_CMD[@]}" >> "${LOG_FILE}" 2>&1 &
       echo $! > "${PID_FILE}"
       echo "${port}" > "${PORT_FILE}"
+      echo "${BACKEND_HOST}" > "${HOST_FILE}"
     )
 
     pid="$(cat "${PID_FILE}")"
@@ -243,8 +312,11 @@ start_backend() {
 
 run_foreground() {
   ensure_deps
+  export_runtime_env
+  show_runtime_summary
+
   local port
-  if ! port="$(find_free_port "${DEFAULT_PORT}" "${PORT_SEARCH_LIMIT}")"; then
+  if ! port="$(find_free_port "${BACKEND_HOST}" "${DEFAULT_PORT}" "${PORT_SEARCH_LIMIT}")"; then
     echo "Error: no free port found from ${DEFAULT_PORT} (+${PORT_SEARCH_LIMIT})." >&2
     exit 1
   fi
@@ -253,7 +325,8 @@ run_foreground() {
   fi
   echo "Running in foreground: http://${BACKEND_HOST}:${port}"
   cd "${ROOT_DIR}"
-  exec "${VENV_PYTHON}" -m uvicorn app.main:app --host "${BACKEND_HOST}" --port "${port}"
+  build_uvicorn_cmd "${BACKEND_HOST}" "${port}"
+  exec "${UVICORN_CMD[@]}"
 }
 
 stop_backend() {
@@ -279,18 +352,19 @@ stop_backend() {
     kill -9 "${pid}" 2>/dev/null || true
   fi
 
-  rm -f "${PID_FILE}" "${PORT_FILE}"
+  rm -f "${PID_FILE}" "${PORT_FILE}" "${HOST_FILE}"
   echo "Backend stopped."
 }
 
 status_backend() {
   if is_running; then
-    local pid port
+    local pid port host
     pid="$(cat "${PID_FILE}")"
     port="$(cat "${PORT_FILE}" 2>/dev/null || echo "${DEFAULT_PORT}")"
+    host="$(cat "${HOST_FILE}" 2>/dev/null || echo "${BACKEND_HOST}")"
     echo "Backend is running."
     echo "PID: ${pid}"
-    echo "URL: http://${BACKEND_HOST}:${port}"
+    echo "URL: http://${host}:${port}"
     echo "Log: ${LOG_FILE}"
   else
     echo "Backend is not running."
