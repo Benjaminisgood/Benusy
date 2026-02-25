@@ -3,7 +3,7 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, select
 
@@ -11,7 +11,7 @@ from app.core.security import get_password_hash
 from app.core.config import settings
 from app.db.database import create_db_and_tables, engine
 from app.models import PlatformMetricConfig, ReviewStatus, Role, User
-from app.routers import admin, assignments, auth, public, tasks, users
+from app.routers import admin, assignments, auth, dashboard, public, tasks, users
 from app.services.scheduler import metrics_update_loop
 
 frontend_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
@@ -86,7 +86,15 @@ app = FastAPI(title=settings.app_name, debug=settings.debug, lifespan=lifespan)
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-for router in (auth.router, users.router, tasks.router, assignments.router, admin.router, public.router):
+for router in (
+    auth.router,
+    users.router,
+    tasks.router,
+    assignments.router,
+    admin.router,
+    dashboard.router,
+    public.router,
+):
     app.include_router(router, prefix=settings.api_v1_prefix)
 
 
@@ -134,6 +142,31 @@ def register_page() -> HTMLResponse:
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard_page() -> HTMLResponse:
     return _serve_html("dashboard.html", "仪表盘")
+
+
+@app.get("/admin", response_class=RedirectResponse, include_in_schema=False)
+def admin_redirect() -> RedirectResponse:
+    return RedirectResponse(url="/admin/dashboard", status_code=302)
+
+
+@app.get("/admin/dashboard", response_class=HTMLResponse)
+def admin_dashboard_page() -> HTMLResponse:
+    return _serve_html("admin_dashboard.html", "管理员控制台")
+
+
+@app.get("/admin/users", response_class=HTMLResponse)
+def admin_users_page() -> HTMLResponse:
+    return _serve_html("admin_users.html", "用户审核中心")
+
+
+@app.get("/admin/reviews", response_class=HTMLResponse)
+def admin_reviews_page() -> HTMLResponse:
+    return _serve_html("admin_reviews.html", "作业审核中心")
+
+
+@app.get("/admin/tasks", response_class=HTMLResponse)
+def admin_tasks_page() -> HTMLResponse:
+    return _serve_html("admin_tasks.html", "任务运营中心")
 
 
 @app.get("/tasks", response_class=HTMLResponse)

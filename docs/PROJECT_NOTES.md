@@ -115,3 +115,48 @@ BACKEND_HOST=127.0.0.1 BACKEND_PORT=9000 ./start.sh
 1. 引入 pytest 覆盖任务分配与个人中心接口
 2. 用 Playwright 补登录、接单、提交、补录的回归用例
 3. 对接真实平台数据源并替换模拟 `fetch_metrics`
+
+## 10. 2026-02-25 重构更新（管理员/博主前端分离）
+
+- 新增管理员独立页面：`/admin/dashboard`
+- 博主仪表盘改为专用页：`/dashboard`（管理员自动分流）
+- 登录成功后按角色跳转：
+  - `admin -> /admin/dashboard`
+  - `blogger -> /dashboard`
+- 新增可解释仪表盘接口：
+  - `GET /api/v1/dashboard/blogger`
+  - `GET /api/v1/admin/dashboard`
+- 新增管理员筛选能力：
+  - `GET /api/v1/admin/users?role=blogger&review_status=pending`
+  - `GET /api/v1/admin/assignments?status=submitted`
+
+## 11. 管理员控制台工程化补充（2026-02-25）
+
+- 管理员页面资源已拆分：
+  - 样式：`frontend/static/css/admin-dashboard.css`
+  - 脚本：`frontend/static/js/admin-layout.js` + 页面模块脚本
+  - 页面：
+    - `frontend/admin_dashboard.html`（运营总览）
+    - `frontend/admin_users.html`（用户审核+详情）
+    - `frontend/admin_reviews.html`（作业/手工指标审核）
+    - `frontend/admin_tasks.html`（任务创建与分配）
+- 新增管理员详情接口：
+  - `GET /api/v1/admin/users/{user_id}/detail`
+  - 返回用户基础资料、平台账号、收款信息、分配统计、最近分配、行为日志
+- 新增用户审核汇总接口：
+  - `GET /api/v1/admin/users/review-summary`
+  - 返回审核队列总量与状态分布，前端直接渲染统计卡
+- 新增前端自动化回归（Playwright CLI）：
+  - 造数脚本：`test/admin_console_seed.py`
+  - 回归脚本：`test/admin_console_regression.sh`
+  - 覆盖流程：管理员登录、用户审核、任务分配、作业审核、手工指标审核
+  - 产物目录：`output/playwright/admin-console/`
+- 回归稳定性加固：
+  - 去除 `waitForFunction` 卡死风险，统一改为显式轮询超时
+  - 分配流断言改为业务结果断言（候选列表渲染 + 自动分配完成）
+  - 清理策略升级：按任务/用户关联回收 assignment、metrics、manual submissions，避免残留数据
+  - 每次 seed 前执行 `adminreg_` 历史脏数据预清理，保证回归可重复
+- 用户审核页继续优化：
+  - 新增状态统计卡和一键筛选
+  - 新增资料完整度评估（实名/联系方式/社媒/收款）
+  - 新增管理员审核与权重调整动作日志写入并在详情页展示

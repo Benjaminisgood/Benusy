@@ -147,6 +147,7 @@
     </div>
 
     <!-- JavaScript -->
+    <script src="/static/js/client.js"></script>
     <script>
         function showError(message) {
             const errorMessage = document.getElementById('error-message');
@@ -190,7 +191,8 @@
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (resp.ok) {
-                window.location.href = '/dashboard';
+                const me = await resp.json();
+                window.location.href = homeRouteByRole(me.role);
             } else {
                 clearAuth();
             }
@@ -237,7 +239,7 @@
                 const store = rememberMe ? localStorage : sessionStorage;
                 store.setItem('current_user_role', me.role || '');
                 store.setItem('current_user_name', me.display_name || me.username || '');
-                window.location.href = '/dashboard';
+                window.location.href = homeRouteByRole(me.role);
             } catch (error) {
                 clearAuth();
                 showError(error.message || '登录失败');

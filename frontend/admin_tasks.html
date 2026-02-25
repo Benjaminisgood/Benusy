@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务运营中心 - Influencer Promotion Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin-dashboard.css">
+</head>
+<body class="admin-body" data-admin-page="tasks">
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>站长控制台</h1>
+            <p>Admin Workspace</p>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="/admin/dashboard" data-nav="dashboard"><i class="fas fa-chart-pie"></i>总览</a></li>
+            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>用户审核</a></li>
+            <li><a href="/admin/reviews" data-nav="reviews"><i class="fas fa-clipboard-check"></i>作业审核</a></li>
+            <li><a href="/admin/tasks" data-nav="tasks"><i class="fas fa-diagram-project"></i>任务分配</a></li>
+            <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <div class="container">
+            <header class="topbar">
+                <div>
+                    <h1 class="page-title">任务运营中心</h1>
+                    <p class="page-subtitle">创建任务、筛选候选达人并执行自动/手动分配。</p>
+                </div>
+                <div class="header-actions">
+                    <span class="meta-chip" id="admin-user-chip">当前管理员: -</span>
+                    <span class="meta-chip" id="current-module-chip">模块: 任务分配</span>
+                    <span class="meta-chip" id="last-updated-chip">最近更新: -</span>
+                    <button class="btn btn-primary" id="refresh-tasks">刷新任务数据</button>
+                </div>
+            </header>
+
+            <div id="page-alert" class="alert"></div>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">新增任务</h2>
+                        <p class="panel-subtitle">先定义目标，再配置投放要求与附件</p>
+                    </div>
+                </div>
+
+                <div class="form-grid three">
+                    <div class="form-group">
+                        <label for="task-title">任务标题</label>
+                        <input id="task-title" placeholder="例如：新品开箱短视频">
+                    </div>
+                    <div class="form-group">
+                        <label for="task-platform">平台</label>
+                        <select id="task-platform">
+                            <option value="douyin">抖音</option>
+                            <option value="xiaohongshu">小红书</option>
+                            <option value="weibo">微博</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-base-reward">基础奖励（元）</label>
+                        <input id="task-base-reward" type="number" min="0" step="0.01" value="100">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="task-status">任务状态</label>
+                        <select id="task-status">
+                            <option value="published">直接发布</option>
+                            <option value="draft">草稿</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-attachments">任务附件（上传到 OSS）</label>
+                        <input id="task-attachments" type="file" multiple>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-description">任务描述</label>
+                    <textarea id="task-description" placeholder="任务目标、发布形式、内容方向"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="task-instructions">执行要求</label>
+                    <textarea id="task-instructions" placeholder="必须包含的话题、发布时间窗口、链接规范等"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="task-attachment-urls">补充附件链接（可选）</label>
+                    <textarea id="task-attachment-urls" placeholder="每行一个 URL，或用逗号分隔"></textarea>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-primary" id="create-task-btn">创建任务</button>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">任务分配</h2>
+                        <p class="panel-subtitle">选择发布任务后查看候选达人，执行自动/指定分配</p>
+                    </div>
+                </div>
+
+                <div class="form-grid three">
+                    <div class="form-group">
+                        <label for="distribute-task-id">已发布任务</label>
+                        <select id="distribute-task-id"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="distribute-limit">自动分配人数</label>
+                        <input id="distribute-limit" type="number" min="1" max="500" value="20">
+                    </div>
+                    <div class="form-group">
+                        <label for="distribute-user-ids">指定用户ID（逗号分隔）</label>
+                        <input id="distribute-user-ids" placeholder="例如: 2,5,8">
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-outline" id="view-eligible-btn">查看候选达人</button>
+                    <button class="btn btn-primary" id="auto-distribute-btn">自动分配</button>
+                    <button class="btn btn-primary" id="manual-distribute-btn">按指定ID分配</button>
+                </div>
+
+                <div class="result-box" id="task-op-result">等待操作</div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">任务清单</h2>
+                        <p class="panel-subtitle">最新任务状态与奖励一览</p>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标题</th>
+                            <th>平台</th>
+                            <th>状态</th>
+                            <th>基础奖励</th>
+                            <th>创建时间</th>
+                        </tr>
+                        </thead>
+                        <tbody id="task-list-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script src="/static/js/client.js"></script>
+<script src="/static/js/admin-layout.js"></script>
+<script src="/static/js/admin-tasks.js"></script>
+</body>
+</html>

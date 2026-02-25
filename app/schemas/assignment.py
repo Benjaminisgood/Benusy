@@ -27,6 +27,7 @@ class ManualMetricReview(SQLModel):
 
 class ManualMetricSubmissionRead(SQLModel):
     id: int
+    assignment_id: int
     likes: int
     comments: int
     shares: int

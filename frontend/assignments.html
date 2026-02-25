@@ -372,7 +372,6 @@
 <script>
     let allAssignments = [];
     let currentStatus = "all";
-    let isAdminView = false;
 
     function showAlert(message, type = "error") {
         const alert = document.getElementById("alert");
@@ -419,8 +418,8 @@
         body.innerHTML = filtered
             .map((assignment) => {
                 const task = assignment.task || {};
-                const canSubmit = !isAdminView && (assignment.status === "accepted" || assignment.status === "rejected");
-                const canManual = !isAdminView && (
+                const canSubmit = assignment.status === "accepted" || assignment.status === "rejected";
+                const canManual = (
                     assignment.metric_sync_status === "manual_required"
                     || assignment.metric_sync_status === "manual_rejected"
                 );
@@ -453,15 +452,9 @@
 
     async function loadAssignments() {
         clearAlert();
-        const me = await apiRequest("/users/me");
-        isAdminView = me.role === "admin";
-        allAssignments = isAdminView
-            ? await apiRequest("/admin/assignments")
-            : await apiRequest("/assignments/me");
-        document.querySelector(".assignments-header h1").textContent = isAdminView ? "全部分配记录（管理员）" : "我的任务记录";
-        if (isAdminView) {
-            showAlert("管理员视图：仅查看详情，提交入口在博主账号侧。", "success");
-        }
+        await requireUserWithRoles(["blogger"]);
+        allAssignments = await apiRequest("/assignments/me");
+        document.querySelector(".assignments-header h1").textContent = "我的任务记录";
         renderAssignments();
     }
 
@@ -520,8 +513,6 @@
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
-        requireAuthRedirect();
-
         document.getElementById("logout-link").addEventListener("click", () => {
             clearAuth();
         });

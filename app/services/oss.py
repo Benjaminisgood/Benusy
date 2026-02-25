@@ -19,6 +19,23 @@ class OSSConfigError(RuntimeError):
     pass
 
 
+def _normalize_endpoint(endpoint: str, *, force_http: bool = False) -> str:
+    raw = endpoint.strip()
+    if raw.startswith("http://"):
+        host = raw.replace("http://", "", 1).strip("/")
+        scheme = "http"
+    elif raw.startswith("https://"):
+        host = raw.replace("https://", "", 1).strip("/")
+        scheme = "https"
+    else:
+        host = raw.strip("/")
+        scheme = "https"
+
+    if force_http:
+        scheme = "http"
+    return f"{scheme}://{host}"
+
+
 def _sanitize_filename(filename: str | None) -> str:
     raw = (filename or "attachment").replace("\\", "/").split("/")[-1]
     sanitized = re.sub(r"[^A-Za-z0-9._-]+", "_", raw).strip("._")
@@ -35,41 +52,98 @@ def _build_object_key(filename: str | None) -> str:
     return "/".join(key_parts)
 
 
-def _build_public_url(object_key: str) -> str:
+def _build_public_url(object_key: str, *, force_http: bool = False) -> str:
     custom_base_url = settings.aliyun_oss_public_base_url.strip()
     if custom_base_url:
         return f"{custom_base_url.rstrip('/')}/{quote(object_key, safe='/')}"
 
-    endpoint = settings.aliyun_oss_endpoint.replace("https://", "").replace("http://", "").strip("/")
-    return f"https://{settings.aliyun_oss_bucket}.{endpoint}/{quote(object_key, safe='/')}"
+    normalized = _normalize_endpoint(settings.aliyun_oss_endpoint, force_http=force_http)
+    scheme, endpoint = normalized.split("://", 1)
+    return f"{scheme}://{settings.aliyun_oss_bucket}.{endpoint}/{quote(object_key, safe='/')}"
 
 
-def _build_bucket():
+def _build_session():
+    session = oss2.Session()
+    # Ignore HTTP(S)_PROXY from runtime env to avoid proxy-induced OSS failures.
+    session.session.trust_env = False
+    return session
+
+
+def _build_bucket(*, force_http: bool = False, is_path_style: bool = False):
     if oss2 is None:
         raise OSSConfigError("缺少 oss2 依赖，请先安装 requirements.txt 中的依赖")
 
     if not settings.oss_enabled():
         raise OSSConfigError("OSS 配置不完整，请检查 config.py 或环境变量")
 
-    endpoint = settings.aliyun_oss_endpoint
-    if not endpoint.startswith(("http://", "https://")):
-        endpoint = f"https://{endpoint}"
+    endpoint = _normalize_endpoint(settings.aliyun_oss_endpoint, force_http=force_http)
 
     auth = oss2.Auth(settings.aliyun_oss_access_key_id, settings.aliyun_oss_access_key_secret)
-    return oss2.Bucket(auth, endpoint, settings.aliyun_oss_bucket)
+    return oss2.Bucket(
+        auth,
+        endpoint,
+        settings.aliyun_oss_bucket,
+        session=_build_session(),
+        is_path_style=is_path_style,
+    )
+
+
+def _should_retry_with_http(exc: Exception) -> bool:
+    details = str(exc)
+    return any(
+        token in details
+        for token in [
+            "SSLEOFError",
+            "UNEXPECTED_EOF_WHILE_READING",
+            "Connection aborted.",
+            "RemoteDisconnected",
+            "RequestError",
+        ]
+    )
 
 
 def upload_task_attachment(file: UploadFile) -> tuple[str, str]:
-    bucket = _build_bucket()
     object_key = _build_object_key(file.filename)
+    used_http_fallback = False
 
     headers = {}
     if file.content_type:
         headers["Content-Type"] = file.content_type
 
     file.file.seek(0)
-    result = bucket.put_object(object_key, file.file, headers=headers or None)
+    payload = file.file.read()
+    if payload is None:
+        payload = b""
+
+    last_exc: Exception | None = None
+    attempts = [
+        {"force_http": False, "is_path_style": False},
+        {"force_http": False, "is_path_style": True},
+        {"force_http": True, "is_path_style": False},
+        {"force_http": True, "is_path_style": True},
+    ]
+    failure_messages: list[str] = []
+    result = None
+    for attempt in attempts:
+        mode = f"{'http' if attempt['force_http'] else 'https'}|{'path' if attempt['is_path_style'] else 'virtual'}"
+        try:
+            bucket = _build_bucket(
+                force_http=attempt["force_http"],
+                is_path_style=attempt["is_path_style"],
+            )
+            result = bucket.put_object(object_key, payload, headers=headers or None)
+            used_http_fallback = attempt["force_http"]
+            break
+        except Exception as exc:
+            last_exc = exc
+            failure_messages.append(f"{mode}: {exc}")
+            if not _should_retry_with_http(exc):
+                raise
+
+    if result is None and last_exc is not None:
+        raise RuntimeError("OSS 多策略上传失败: " + " ; ".join(failure_messages)) from last_exc
+
     if getattr(result, "status", 200) >= 300:
         raise RuntimeError(f"OSS 上传失败，HTTP {result.status}")
 
-    return _build_public_url(object_key), object_key
+    return _build_public_url(object_key, force_http=used_http_fallback), object_key

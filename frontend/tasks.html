@@ -311,7 +311,6 @@
 <script>
     let allTasks = [];
     let taskAssignmentMap = new Map();
-    let isAdminView = false;
 
     function showAlert(message, type = "error") {
         const alert = document.getElementById("alert");
@@ -358,10 +357,8 @@
             .map((task) => {
                 const assignment = taskAssignmentMap.get(task.id);
                 const taken = Boolean(assignment);
-                const acceptLabel = isAdminView
-                    ? "管理员视图"
-                    : (taken ? `已接单(${assignmentStatusLabel(assignment.status)})` : "接受任务");
-                const acceptDisabled = isAdminView || taken;
+                const acceptLabel = taken ? `已接单(${assignmentStatusLabel(assignment.status)})` : "接受任务";
+                const acceptDisabled = taken;
 
                 return `
                     <div class="task-card">
@@ -386,32 +383,20 @@
 
     async function loadData() {
         clearAlert();
-        const me = await apiRequest("/users/me");
-        isAdminView = me.role === "admin";
+        await requireUserWithRoles(["blogger"]);
 
-        const [tasks, assignments] = isAdminView
-            ? await Promise.all([
-                apiRequest("/admin/tasks"),
-                apiRequest("/admin/assignments"),
-            ])
-            : await Promise.all([
-                apiRequest("/tasks/"),
-                apiRequest("/assignments/me"),
-            ]);
+        const [tasks, assignments] = await Promise.all([
+            apiRequest("/tasks/"),
+            apiRequest("/assignments/me"),
+        ]);
 
-        allTasks = isAdminView
-            ? (tasks || []).filter((task) => task.status === "published")
-            : (tasks || []);
+        allTasks = tasks || [];
         taskAssignmentMap = new Map();
         (assignments || []).forEach((item) => {
             if (item && item.task && item.status !== "cancelled") {
                 taskAssignmentMap.set(item.task.id, item);
             }
         });
-
-        if (isAdminView) {
-            showAlert("当前为管理员视图：可查看任务详情，不可直接接单。", "success");
-        }
         renderTasks();
     }
 
@@ -458,8 +443,6 @@
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
-        requireAuthRedirect();
-
         document.getElementById("logout-link").addEventListener("click", () => {
             clearAuth();
         });

@@ -6,7 +6,7 @@ from typing import Optional
 from pydantic import field_validator
 from sqlmodel import Field, SQLModel
 
-from app.models import PayoutMethod, ReviewStatus, Role
+from app.models import AssignmentStatus, MetricSyncStatus, PayoutMethod, ReviewStatus, Role
 
 
 class PlatformAccountCreate(SQLModel):
@@ -156,3 +156,44 @@ class UserActivityRead(SQLModel):
     title: str
     detail: Optional[str] = None
     created_at: datetime
+
+
+class AdminUserReviewSummaryRead(SQLModel):
+    total: int
+    pending: int
+    under_review: int
+    approved: int
+    rejected: int
+
+
+class AdminUserAssignmentStatsRead(SQLModel):
+    total: int
+    accepted: int
+    submitted: int
+    in_review: int
+    completed: int
+    rejected: int
+    cancelled: int
+    total_revenue: float
+    last_assignment_at: Optional[datetime] = None
+
+
+class AdminUserAssignmentSnapshotRead(SQLModel):
+    assignment_id: int
+    task_id: int
+    task_title: str
+    status: AssignmentStatus
+    metric_sync_status: MetricSyncStatus
+    revenue: float
+    post_link: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    last_synced_at: Optional[datetime] = None
+
+
+class AdminUserDetailRead(SQLModel):
+    user: UserRead
+    payout_info: Optional[PayoutInfoRead] = None
+    assignment_stats: AdminUserAssignmentStatsRead
+    recent_assignments: list[AdminUserAssignmentSnapshotRead] = Field(default_factory=list)
+    recent_activities: list[UserActivityRead] = Field(default_factory=list)

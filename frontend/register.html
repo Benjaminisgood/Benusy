@@ -155,7 +155,7 @@
             </div>
             <div class="form-group">
                 <label for="password">密码</label>
-                <input type="password" id="password" name="password" required>
+                <input type="password" id="password" name="password" required minlength="8">
             </div>
 
             <div class="social-accounts">
@@ -194,6 +194,28 @@
 
     <!-- JavaScript -->
     <script>
+        function detailToMessage(detail, fallback) {
+            if (!detail) return fallback;
+            if (typeof detail === 'string') return detail;
+            if (Array.isArray(detail)) {
+                const messages = detail.map((item) => {
+                    if (typeof item === 'string') return item;
+                    if (item && typeof item === 'object') {
+                        const loc = Array.isArray(item.loc) ? item.loc.join('.') : '';
+                        const msg = item.msg || JSON.stringify(item);
+                        return loc ? `${loc}: ${msg}` : msg;
+                    }
+                    return String(item);
+                }).filter(Boolean);
+                return messages.length ? messages.join('; ') : fallback;
+            }
+            if (typeof detail === 'object') {
+                if (typeof detail.msg === 'string') return detail.msg;
+                return JSON.stringify(detail);
+            }
+            return fallback;
+        }
+
         document.getElementById('register-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -227,6 +249,14 @@
                 xiaohongshu_accounts,
                 weibo_accounts
             };
+
+            const password = requestData.password || '';
+            if (password.length < 8) {
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.textContent = '密码至少需要 8 位';
+                errorMessage.style.display = 'block';
+                return;
+            }
             
             fetch('/api/v1/auth/register', {
                 method: 'POST',
@@ -238,12 +268,15 @@
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(error => {
-                        throw new Error(error.detail || '注册失败');
+                        throw new Error(detailToMessage(error?.detail, `注册失败 (${response.status})`));
                     });
                 }
                 return response.json();
             })
             .then(data => {
+                const errorMessage = document.getElementById('error-message');
+                errorMessage.style.display = 'none';
+
                 // 显示成功消息
                 const successMessage = document.getElementById('success-message');
                 successMessage.textContent = '注册成功！请等待管理员审核后登录。';
@@ -258,6 +291,9 @@
                 }, 3000);
             })
             .catch(error => {
+                const successMessage = document.getElementById('success-message');
+                successMessage.style.display = 'none';
+
                 const errorMessage = document.getElementById('error-message');
                 errorMessage.textContent = error.message;
                 errorMessage.style.display = 'block';

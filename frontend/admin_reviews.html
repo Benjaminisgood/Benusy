@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作业审核中心 - Influencer Promotion Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin-dashboard.css">
+</head>
+<body class="admin-body" data-admin-page="reviews">
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>站长控制台</h1>
+            <p>Admin Workspace</p>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="/admin/dashboard" data-nav="dashboard"><i class="fas fa-chart-pie"></i>总览</a></li>
+            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>用户审核</a></li>
+            <li><a href="/admin/reviews" data-nav="reviews"><i class="fas fa-clipboard-check"></i>作业审核</a></li>
+            <li><a href="/admin/tasks" data-nav="tasks"><i class="fas fa-diagram-project"></i>任务分配</a></li>
+            <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <div class="container">
+            <header class="topbar">
+                <div>
+                    <h1 class="page-title">作业审核中心</h1>
+                    <p class="page-subtitle">处理提交作业与手工指标，确保结算链路可追溯。</p>
+                </div>
+                <div class="header-actions">
+                    <span class="meta-chip" id="admin-user-chip">当前管理员: -</span>
+                    <span class="meta-chip" id="current-module-chip">模块: 作业审核</span>
+                    <span class="meta-chip" id="last-updated-chip">最近更新: -</span>
+                    <button class="btn btn-primary" id="refresh-reviews">刷新审核数据</button>
+                </div>
+            </header>
+
+            <div id="page-alert" class="alert"></div>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">任务作业审核队列</h2>
+                        <p class="panel-subtitle">处理 submitted / in_review 作业，支持通过与驳回</p>
+                    </div>
+                    <button class="btn btn-outline" id="reload-assignments">刷新作业队列</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>分配ID</th>
+                            <th>任务</th>
+                            <th>状态</th>
+                            <th>帖子链接</th>
+                            <th>同步状态</th>
+                            <th>收益</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="assignment-review-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">手工指标审核队列</h2>
+                        <p class="panel-subtitle">审核通过后将触发收益重算</p>
+                    </div>
+                    <button class="btn btn-outline" id="reload-manual">刷新手工指标队列</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>记录ID</th>
+                            <th>分配ID</th>
+                            <th>指标</th>
+                            <th>备注</th>
+                            <th>提交时间</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="manual-review-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script src="/static/js/client.js"></script>
+<script src="/static/js/admin-layout.js"></script>
+<script src="/static/js/admin-reviews.js"></script>
+</body>
+</html>

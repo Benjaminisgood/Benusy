@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员总览 - Influencer Promotion Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/admin-dashboard.css">
+</head>
+<body class="admin-body" data-admin-page="dashboard">
+<div class="admin-shell">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>站长控制台</h1>
+            <p>Admin Workspace</p>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="/admin/dashboard" data-nav="dashboard"><i class="fas fa-chart-pie"></i>总览</a></li>
+            <li><a href="/admin/users" data-nav="users"><i class="fas fa-user-check"></i>用户审核</a></li>
+            <li><a href="/admin/reviews" data-nav="reviews"><i class="fas fa-clipboard-check"></i>作业审核</a></li>
+            <li><a href="/admin/tasks" data-nav="tasks"><i class="fas fa-diagram-project"></i>任务分配</a></li>
+            <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <div class="container">
+            <header class="topbar">
+                <div>
+                    <h1 class="page-title">运营总览</h1>
+                    <p class="page-subtitle">审核、分配、收益口径统一归档，由后端计算并实时展示。</p>
+                </div>
+                <div class="header-actions">
+                    <span class="meta-chip" id="admin-user-chip">当前管理员: -</span>
+                    <span class="meta-chip" id="current-module-chip">模块: 总览</span>
+                    <span class="meta-chip" id="last-updated-chip">最近更新: -</span>
+                    <button class="btn btn-primary" id="refresh-all">刷新总览</button>
+                </div>
+            </header>
+
+            <div id="page-alert" class="alert"></div>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">核心指标</h2>
+                        <p class="panel-subtitle">关注审核积压、任务供给与收益变化</p>
+                    </div>
+                </div>
+                <div class="kpi-grid">
+                    <article class="kpi-card">
+                        <h4>待审核用户</h4>
+                        <p class="kpi-value" id="kpi-pending-users">0</p>
+                    </article>
+                    <article class="kpi-card">
+                        <h4>审核中用户</h4>
+                        <p class="kpi-value" id="kpi-under-review-users">0</p>
+                    </article>
+                    <article class="kpi-card">
+                        <h4>待审任务作业</h4>
+                        <p class="kpi-value" id="kpi-pending-assignments">0</p>
+                    </article>
+                    <article class="kpi-card">
+                        <h4>待审手工指标</h4>
+                        <p class="kpi-value" id="kpi-pending-manual">0</p>
+                    </article>
+                    <article class="kpi-card">
+                        <h4>已发布任务</h4>
+                        <p class="kpi-value" id="kpi-published-tasks">0</p>
+                    </article>
+                    <article class="kpi-card">
+                        <h4>平台累计收益</h4>
+                        <p class="kpi-value" id="kpi-total-revenue">¥0.00</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">模块导航</h2>
+                        <p class="panel-subtitle">进入独立工作台处理具体任务</p>
+                    </div>
+                </div>
+                <div class="quick-links">
+                    <a class="quick-link" href="/admin/users">
+                        <h3><i class="fas fa-user-check"></i> 用户审核中心</h3>
+                        <p>查看完整达人资料、社媒账号、收款方式与历史行为后再做审核决策。</p>
+                    </a>
+                    <a class="quick-link" href="/admin/reviews">
+                        <h3><i class="fas fa-clipboard-check"></i> 作业审核中心</h3>
+                        <p>集中处理提交作业与手工指标审核，统一留痕。</p>
+                    </a>
+                    <a class="quick-link" href="/admin/tasks">
+                        <h3><i class="fas fa-diagram-project"></i> 任务运营中心</h3>
+                        <p>创建任务、查看候选达人并执行自动/手动分配。</p>
+                    </a>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">统计口径</h2>
+                        <p class="panel-subtitle">口径定义与后端保持一致，前端仅渲染</p>
+                    </div>
+                </div>
+                <ul id="formula-list" class="formula-list"></ul>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">最近分配动态</h2>
+                        <p class="panel-subtitle">最近 12 条分配活动记录</p>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>分配ID</th>
+                            <th>任务</th>
+                            <th>博主</th>
+                            <th>状态</th>
+                            <th>分配时间</th>
+                        </tr>
+                        </thead>
+                        <tbody id="recent-activities-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script src="/static/js/client.js"></script>
+<script src="/static/js/admin-layout.js"></script>
+<script src="/static/js/admin-dashboard.js"></script>
+</body>
+</html>

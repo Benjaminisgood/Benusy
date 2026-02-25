@@ -12,6 +12,10 @@ config.py
 __pycache__/
 *.py[cod]
 *.pyo
+.venv/
+.run/
+output/
+.playwright-cli/
 
 # macOS
 .DS_Store

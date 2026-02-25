@@ -167,6 +167,22 @@ async function loadHomepageConfig() {
         const heroTitle = document.getElementById('hero-title');
         const heroSubtitle = document.getElementById('hero-subtitle');
         const heroImage = document.getElementById('hero-image');
+        const heroPrimaryBtn = document.getElementById('hero-primary-btn');
+        const heroSecondaryBtn = document.getElementById('hero-secondary-btn');
+        const contactTitle = document.getElementById('contact-title');
+        const contactSubtitle = document.getElementById('contact-subtitle');
+        const contactAddress = document.getElementById('contact-address');
+        const contactPhone = document.getElementById('contact-phone');
+        const contactEmail = document.getElementById('contact-email');
+        const merchantQuickNote = document.getElementById('merchant-quick-note');
+        const merchantNoticeTitle = document.getElementById('merchant-notice-title');
+        const merchantNoticeText = document.getElementById('merchant-notice-text');
+        const merchantServicePublish = document.getElementById('merchant-service-publish');
+        const merchantServiceAccount = document.getElementById('merchant-service-account');
+        const merchantServiceNoRegister = document.getElementById('merchant-service-no-register');
+        const merchantContactPhone = document.getElementById('merchant-contact-phone');
+        const merchantContactWechat = document.getElementById('merchant-contact-wechat');
+        const merchantContactEmail = document.getElementById('merchant-contact-email');
 
         if (siteLogo && homepage.nav_brand) siteLogo.textContent = homepage.nav_brand;
         if (heroTitle && homepage.hero_title) heroTitle.textContent = homepage.hero_title;
@@ -174,6 +190,60 @@ async function loadHomepageConfig() {
         if (heroImage && homepage.hero_image_url) {
             heroImage.src = homepage.hero_image_url;
             heroImage.alt = homepage.hero_title || heroImage.alt;
+        }
+        if (heroPrimaryBtn && homepage.hero_primary_button_text) {
+            heroPrimaryBtn.textContent = homepage.hero_primary_button_text;
+        }
+        if (heroPrimaryBtn && homepage.hero_primary_button_href) {
+            heroPrimaryBtn.href = homepage.hero_primary_button_href;
+        }
+        if (heroSecondaryBtn && homepage.hero_secondary_button_text) {
+            heroSecondaryBtn.textContent = homepage.hero_secondary_button_text;
+        }
+        if (heroSecondaryBtn && homepage.hero_secondary_button_href) {
+            heroSecondaryBtn.href = homepage.hero_secondary_button_href;
+        }
+        if (contactTitle && homepage.contact_section_title) {
+            contactTitle.textContent = homepage.contact_section_title;
+        }
+        if (contactSubtitle && homepage.contact_section_subtitle) {
+            contactSubtitle.textContent = homepage.contact_section_subtitle;
+        }
+        if (contactAddress && homepage.contact_address) {
+            contactAddress.textContent = homepage.contact_address;
+        }
+        if (contactPhone && homepage.contact_phone) {
+            contactPhone.textContent = homepage.contact_phone;
+        }
+        if (contactEmail && homepage.contact_email) {
+            contactEmail.textContent = homepage.contact_email;
+        }
+        if (merchantNoticeTitle && homepage.merchant_notice_title) {
+            merchantNoticeTitle.textContent = homepage.merchant_notice_title;
+        }
+        if (merchantNoticeText && homepage.merchant_notice_text) {
+            merchantNoticeText.textContent = homepage.merchant_notice_text;
+        }
+        if (merchantQuickNote && homepage.merchant_notice_text) {
+            merchantQuickNote.textContent = homepage.merchant_notice_text;
+        }
+        if (merchantServicePublish && homepage.merchant_service_publish_text) {
+            merchantServicePublish.textContent = homepage.merchant_service_publish_text;
+        }
+        if (merchantServiceAccount && homepage.merchant_service_account_text) {
+            merchantServiceAccount.textContent = homepage.merchant_service_account_text;
+        }
+        if (merchantServiceNoRegister && homepage.merchant_service_no_register_text) {
+            merchantServiceNoRegister.textContent = homepage.merchant_service_no_register_text;
+        }
+        if (merchantContactPhone && homepage.merchant_contact_phone) {
+            merchantContactPhone.textContent = homepage.merchant_contact_phone;
+        }
+        if (merchantContactWechat && homepage.merchant_contact_wechat) {
+            merchantContactWechat.textContent = homepage.merchant_contact_wechat;
+        }
+        if (merchantContactEmail && homepage.merchant_contact_email) {
+            merchantContactEmail.textContent = homepage.merchant_contact_email;
         }
         if (homepage.site_name) {
             document.title = homepage.site_name;

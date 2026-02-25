@@ -621,7 +621,12 @@
     }
 
     document.addEventListener("DOMContentLoaded", async () => {
-        requireAuthRedirect();
+        try {
+            await requireUserWithRoles(["blogger"]);
+        } catch (error) {
+            showAlert(error.message || "页面权限校验失败");
+            return;
+        }
 
         document.getElementById("logout-link").addEventListener("click", () => {
             clearAuth();

@@ -143,3 +143,21 @@ async function apiRequest(path, options = {}) {
 
     return payload;
 }
+
+function homeRouteByRole(role) {
+    if (role === "admin") return "/admin/dashboard";
+    return "/dashboard";
+}
+
+function redirectByRole(role) {
+    window.location.href = homeRouteByRole(role);
+}
+
+async function requireUserWithRoles(allowedRoles) {
+    const user = await apiRequest("/users/me");
+    if (Array.isArray(allowedRoles) && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+        redirectByRole(user.role);
+        throw new Error("无权限访问当前页面");
+    }
+    return user;
+}
