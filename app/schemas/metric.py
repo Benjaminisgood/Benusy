@@ -9,7 +9,7 @@ class MetricRead(SQLModel):
     id: int
     timestamp: datetime
     likes: int
-    comments: int
+    favorites: int
     shares: int
     views: int
     source: MetricSource

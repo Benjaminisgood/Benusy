@@ -7,7 +7,6 @@ from sqlmodel import Field, Relationship, SQLModel
 
 class AssignmentStatus(str, Enum):
     accepted = "accepted"
-    submitted = "submitted"
     in_review = "in_review"
     rejected = "rejected"
     completed = "completed"

@@ -21,27 +21,33 @@ from app.models import (
 )
 
 
-def _create_admin(session: Session) -> None:
-    existing = session.exec(select(User).where(User.email == "admin@example.com")).first()
-    if existing:
-        print("Admin already exists")
-        return
-
-    admin = User(
-        email="admin@example.com",
-        phone="13000000000",
-        username="admin",
-        display_name="Admin",
-        city="N/A",
-        category="operations",
-        tags="admin",
-        hashed_password=get_password_hash("admin123"),
-        role=Role.admin,
-        review_status=ReviewStatus.approved,
-    )
-    session.add(admin)
-    session.commit()
-    print("Created admin: admin@example.com / admin123")
+def _create_admins(session: Session) -> None:
+    default_admins = [
+        ("yangliwei@admin", "13000000001"),
+        ("lingxulong@admin", "13000000002"),
+    ]
+    created = False
+    for account, phone in default_admins:
+        existing = session.exec(select(User).where(User.email == account)).first()
+        if existing:
+            continue
+        admin = User(
+            email=account,
+            phone=phone,
+            username=account,
+            display_name=account,
+            city="N/A",
+            category="operations",
+            tags="admin",
+            hashed_password=get_password_hash("ilovemoney"),
+            role=Role.admin,
+            review_status=ReviewStatus.approved,
+        )
+        session.add(admin)
+        created = True
+    if created:
+        session.commit()
+    print("Default admins ready: yangliwei@admin / lingxulong@admin (password: ilovemoney)")
 
 
 def _create_blogger(
@@ -87,7 +93,7 @@ def _create_blogger(
 def main() -> int:
     create_db_and_tables()
     with Session(engine) as session:
-        _create_admin(session)
+        _create_admins(session)
         _create_blogger(
             session,
             email="blogger1@example.com",

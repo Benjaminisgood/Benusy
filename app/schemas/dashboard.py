@@ -29,7 +29,6 @@ class BloggerDashboardStatsRead(SQLModel):
     completed_assignments: int
     total_revenue: float
     accepted_assignments: int
-    submitted_assignments: int
     in_review_assignments: int
     rejected_assignments: int
     cancelled_assignments: int
@@ -52,7 +51,6 @@ class AdminTaskStatsRead(SQLModel):
 class AdminAssignmentStatsRead(SQLModel):
     total: int
     accepted: int
-    submitted: int
     in_review: int
     completed: int
     rejected: int

@@ -18,10 +18,7 @@ async def metrics_update_loop(stop_event: asyncio.Event) -> None:
             with Session(engine) as session:
                 assignments = session.exec(
                     select(Assignment).where(
-                        Assignment.status.in_([
-                            AssignmentStatus.submitted,
-                            AssignmentStatus.in_review,
-                        ]),
+                        Assignment.status == AssignmentStatus.in_review,
                         Assignment.metric_sync_status.in_([
                             MetricSyncStatus.normal,
                             MetricSyncStatus.manual_required,

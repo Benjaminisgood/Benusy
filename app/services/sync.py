@@ -39,7 +39,7 @@ async def sync_assignment_metrics_once(session: Session, assignment: Assignment)
     metric = Metric(
         assignment_id=assignment.id,
         likes=int(metrics_data.get("likes", 0)),
-        comments=int(metrics_data.get("comments", 0)),
+        favorites=int(metrics_data.get("favorites", 0)),
         shares=int(metrics_data.get("shares", 0)),
         views=int(metrics_data.get("views", 0)),
         source=MetricSource.auto,
@@ -57,14 +57,14 @@ def apply_manual_metric(
     assignment: Assignment,
     *,
     likes: int,
-    comments: int,
+    favorites: int,
     shares: int,
     views: int,
 ) -> Metric:
     metric = Metric(
         assignment_id=assignment.id,
         likes=likes,
-        comments=comments,
+        favorites=favorites,
         shares=shares,
         views=views,
         source=MetricSource.manual,

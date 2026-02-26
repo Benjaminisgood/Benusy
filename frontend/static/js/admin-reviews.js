@@ -2,6 +2,24 @@
     let reviewAssignments = [];
     let pendingManualSubmissions = [];
 
+    function normalizePostLink(raw) {
+        const value = String(raw || "").trim();
+        if (!value) return null;
+        if (/^https?:\/\//i.test(value)) {
+            return value;
+        }
+        if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+            return null;
+        }
+        return `https://${value}`;
+    }
+
+    function assignmentPostLinkHtml(postLink) {
+        const link = normalizePostLink(postLink);
+        if (!link) return "-";
+        return `<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">查看链接</a>`;
+    }
+
     function renderAssignmentReviewQueue() {
         const body = document.getElementById("assignment-review-body");
         if (!reviewAssignments.length) {
@@ -12,9 +30,6 @@
         body.innerHTML = reviewAssignments.map((assignment) => {
             const actions = [];
             const manualReady = assignment.metric_sync_status === "manual_approved";
-            if (assignment.status === "submitted") {
-                actions.push(`<button class="mini-btn primary" data-action="assignment-start-review" data-assignment-id="${assignment.id}">进入审核</button>`);
-            }
             if (manualReady) {
                 actions.push(`<button class="mini-btn success" data-action="assignment-approve" data-assignment-id="${assignment.id}">通过</button>`);
             } else {
@@ -27,7 +42,7 @@
                     <td>${assignment.id}</td>
                     <td>${escapeHtml(assignment.task?.title || "-")}</td>
                     <td><span class="status ${escapeHtml(assignment.status)}">${escapeHtml(assignmentStatusLabel(assignment.status))}</span></td>
-                    <td>${assignment.post_link ? `<a href="${escapeHtml(assignment.post_link)}" target="_blank" rel="noopener noreferrer">查看链接</a>` : "-"}</td>
+                    <td>${assignmentPostLinkHtml(assignment.post_link)}</td>
                     <td><span class="status ${escapeHtml(assignment.metric_sync_status)}">${escapeHtml(metricSyncStatusLabel(assignment.metric_sync_status))}</span></td>
                     <td>¥${Number(assignment.revenue || 0).toFixed(2)}</td>
                     <td><div class="actions">${actions.join("")}</div></td>
@@ -47,7 +62,7 @@
             <tr>
                 <td>${item.id}</td>
                 <td>${item.assignment_id}</td>
-                <td>赞 ${item.likes} / 评 ${item.comments} / 转 ${item.shares} / 播 ${item.views}</td>
+                <td>赞 ${item.likes} / 藏 ${item.favorites} / 转 ${item.shares} / 播 ${item.views}</td>
                 <td>${escapeHtml(item.note || "-")}</td>
                 <td>${escapeHtml(formatDateTime(item.submitted_at))}</td>
                 <td>
@@ -61,13 +76,6 @@
     }
 
     async function handleAssignmentReview(action, assignmentId) {
-        if (action === "assignment-start-review") {
-            await apiRequest(`/admin/assignments/${assignmentId}/start-review`, { method: "POST" });
-            await loadReviewQueues();
-            adminLayout.showAlert(`分配 ${assignmentId} 已进入审核中`, "success");
-            return;
-        }
-
         if (action === "assignment-approve") {
             const assignment = reviewAssignments.find((item) => item.id === assignmentId);
             if (assignment && assignment.metric_sync_status !== "manual_approved") {
@@ -118,13 +126,12 @@
 
     async function loadReviewQueues(showSuccess = false) {
         adminLayout.clearAlert();
-        const [submittedAssignments, inReviewAssignments, manualPending] = await Promise.all([
-            apiRequest("/admin/assignments?status=submitted"),
+        const [inReviewAssignments, manualPending] = await Promise.all([
             apiRequest("/admin/assignments?status=in_review"),
             apiRequest("/admin/manual-metrics/pending"),
         ]);
 
-        reviewAssignments = [...(submittedAssignments || []), ...(inReviewAssignments || [])]
+        reviewAssignments = [...(inReviewAssignments || [])]
             .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         pendingManualSubmissions = manualPending || [];
 

@@ -27,8 +27,9 @@ BACKEND_HOST=127.0.0.1 BACKEND_PORT=9000 ENVIRONMENT=development DEBUG=1 ./start
 - 鉴权：JWT Bearer
 - 数据库：SQLite（`database.db`）
 - 默认管理员（启动自动确保存在）：
-  - 邮箱：`admin@example.com`
-  - 密码：`admin123`
+  - 账号：`yangliwei@admin`
+  - 账号：`lingxulong@admin`
+  - 密码：`ilovemoney`
 
 ## 3. 用户与审核流程
 

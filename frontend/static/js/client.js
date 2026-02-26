@@ -41,7 +41,6 @@ function platformLabel(platform) {
 function assignmentStatusLabel(status) {
     const map = {
         accepted: "待提交",
-        submitted: "已提交",
         in_review: "审核中",
         rejected: "已拒绝",
         completed: "已完成",

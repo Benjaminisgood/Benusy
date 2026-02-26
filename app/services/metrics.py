@@ -11,7 +11,7 @@ async def fetch_metrics(post_url: str) -> dict[str, int]:
 
     return {
         "likes": random.randint(50, 1500),
-        "comments": random.randint(10, 700),
+        "favorites": random.randint(10, 700),
         "shares": random.randint(5, 300),
         "views": random.randint(500, 50000),
     }

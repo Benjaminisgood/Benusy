@@ -34,36 +34,54 @@ def _seed_default_platform_configs() -> None:
         session.commit()
 
 
-def _seed_default_admin() -> None:
+def _seed_default_admins() -> None:
+    default_admins = [
+        {
+            "email": "yangliwei@admin",
+            "phone": "13000000001",
+            "username": "yangliwei@admin",
+            "display_name": "yangliwei@admin",
+            "real_name": "yangliwei@admin",
+        },
+        {
+            "email": "lingxulong@admin",
+            "phone": "13000000002",
+            "username": "lingxulong@admin",
+            "display_name": "lingxulong@admin",
+            "real_name": "lingxulong@admin",
+        },
+    ]
     with Session(engine) as session:
-        admin = session.exec(select(User).where(User.role == Role.admin)).first()
-        if admin is not None:
-            return
-
-        session.add(
-            User(
-                email="admin@example.com",
-                phone="13000000000",
-                username="admin",
-                display_name="Admin",
-                real_name="Platform Admin",
-                city="N/A",
-                category="operations",
-                tags="admin",
-                follower_total=0,
-                avg_views=0,
-                hashed_password=get_password_hash("admin123"),
-                role=Role.admin,
-                review_status=ReviewStatus.approved,
-            )
+        existing_admin_emails = set(
+            session.exec(select(User.email).where(User.role == Role.admin)).all()
         )
+        for admin in default_admins:
+            if admin["email"] in existing_admin_emails:
+                continue
+            session.add(
+                User(
+                    email=admin["email"],
+                    phone=admin["phone"],
+                    username=admin["username"],
+                    display_name=admin["display_name"],
+                    real_name=admin["real_name"],
+                    city="N/A",
+                    category="operations",
+                    tags="admin",
+                    follower_total=0,
+                    avg_views=0,
+                    hashed_password=get_password_hash("ilovemoney"),
+                    role=Role.admin,
+                    review_status=ReviewStatus.approved,
+                )
+            )
         session.commit()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
-    _seed_default_admin()
+    _seed_default_admins()
     _seed_default_platform_configs()
 
     stop_event = asyncio.Event()

@@ -49,6 +49,24 @@
         return `¥${Number(value || 0).toFixed(2)}`;
     }
 
+    function normalizePostLink(raw) {
+        const value = String(raw || "").trim();
+        if (!value) return null;
+        if (/^https?:\/\//i.test(value)) {
+            return value;
+        }
+        if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+            return null;
+        }
+        return `https://${value}`;
+    }
+
+    function postLinkHtml(postLink) {
+        const link = normalizePostLink(postLink);
+        if (!link) return "-";
+        return `<a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">打开帖子</a>`;
+    }
+
     function renderOverview() {
         if (!overview) return;
 
@@ -163,6 +181,41 @@
         `;
     }
 
+    function completedAssignmentsHtml(assignments) {
+        if (!assignments.length) {
+            return `<div class="empty">暂无任务完成记录</div>`;
+        }
+
+        return `
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>分配ID</th>
+                        <th>任务</th>
+                        <th>平台</th>
+                        <th>完成时间</th>
+                        <th>核验收益</th>
+                        <th>帖子链接</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    ${assignments.map((item) => `
+                        <tr>
+                            <td>${item.assignment_id}</td>
+                            <td>${escapeHtml(item.task_title || "-")}</td>
+                            <td>${escapeHtml(platformLabel(item.platform))}</td>
+                            <td>${escapeHtml(formatDateTime(item.completed_at))}</td>
+                            <td>${money(item.revenue)}</td>
+                            <td>${postLinkHtml(item.post_link)}</td>
+                        </tr>
+                    `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
     function activitiesHtml(activities) {
         if (!activities.length) {
             return `<div class="empty">暂无行为日志</div>`;
@@ -189,6 +242,7 @@
         const user = detail.user;
         const summary = detail.summary;
         const payout = detail.payout_info;
+        const completedAssignments = detail.recent_completed_assignments || [];
         const records = detail.recent_records || [];
         const activities = detail.recent_activities || [];
         const payoutReadyText = summary.has_valid_payout_info ? "可放款" : "收款信息待补全";
@@ -218,6 +272,11 @@
                 <section class="module-card">
                     <h4>收款信息</h4>
                     ${payoutInfoHtml(payout)}
+                </section>
+
+                <section class="module-card">
+                    <h4>任务完成记录</h4>
+                    ${completedAssignmentsHtml(completedAssignments)}
                 </section>
 
                 <section class="module-card">

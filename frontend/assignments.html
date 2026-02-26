@@ -82,7 +82,6 @@
         }
 
         .status-accepted { background: #fff3e0; color: #f57c00; }
-        .status-submitted { background: #ede7f6; color: #5e35b1; }
         .status-in_review { background: #e3f2fd; color: #1976d2; }
         .status-completed { background: #e8f5e9; color: #2e7d32; }
         .status-rejected { background: #ffebee; color: #c62828; }
@@ -240,7 +239,6 @@
                 <div class="status-filter" id="status-filter">
                     <button class="status-btn active" data-status="all">全部</button>
                     <button class="status-btn" data-status="accepted">待提交</button>
-                    <button class="status-btn" data-status="submitted">已提交</button>
                     <button class="status-btn" data-status="in_review">审核中</button>
                     <button class="status-btn" data-status="completed">已完成</button>
                     <button class="status-btn" data-status="rejected">已拒绝</button>
@@ -302,8 +300,8 @@
                     <input id="manual-likes" type="number" min="0" value="0" required>
                 </div>
                 <div class="form-group">
-                    <label for="manual-comments">评论</label>
-                    <input id="manual-comments" type="number" min="0" value="0" required>
+                    <label for="manual-favorites">收藏</label>
+                    <input id="manual-favorites" type="number" min="0" value="0" required>
                 </div>
                 <div class="form-group">
                     <label for="manual-shares">分享</label>
@@ -400,7 +398,7 @@
                 const task = assignment.task || {};
                 const canSubmit = assignment.status === "accepted" || assignment.status === "rejected";
                 const canManual = (
-                    (assignment.status === "submitted" || assignment.status === "in_review")
+                    assignment.status === "in_review"
                     && (
                         assignment.metric_sync_status === "normal"
                         || assignment.metric_sync_status === "manual_required"
@@ -453,7 +451,7 @@
 
         const latest = getLatestMetric(assignment);
         document.getElementById("manual-likes").value = latest ? latest.likes : 0;
-        document.getElementById("manual-comments").value = latest ? latest.comments : 0;
+        document.getElementById("manual-favorites").value = latest ? latest.favorites : 0;
         document.getElementById("manual-shares").value = latest ? latest.shares : 0;
         document.getElementById("manual-views").value = latest ? latest.views : 0;
         document.getElementById("manual-note").value = "";
@@ -472,7 +470,7 @@
         document.getElementById("detail-post-link").value = assignment.post_link || "";
 
         const metricsText = latest
-            ? `点赞 ${latest.likes} / 评论 ${latest.comments} / 分享 ${latest.shares} / 浏览 ${latest.views} (${latest.source})`
+            ? `点赞 ${latest.likes} / 收藏 ${latest.favorites} / 分享 ${latest.shares} / 浏览 ${latest.views} (${latest.source})`
             : "暂无数据";
 
         grid.innerHTML = [
@@ -555,7 +553,7 @@
                     body: { post_link: postLink },
                 });
                 closeModal("submit-modal");
-                showAlert("任务已提交：自动数据仅作预采集，请尽快提交手工数据进入审核", "success");
+                showAlert("任务已提交并进入审核中：自动数据仅作预采集，请尽快提交手工数据", "success");
                 await loadAssignments();
             } catch (error) {
                 showAlert(error.message || "提交失败");
@@ -569,7 +567,7 @@
             const assignmentId = Number(document.getElementById("manual-assignment-id").value);
             const payload = {
                 likes: Number(document.getElementById("manual-likes").value || 0),
-                comments: Number(document.getElementById("manual-comments").value || 0),
+                favorites: Number(document.getElementById("manual-favorites").value || 0),
                 shares: Number(document.getElementById("manual-shares").value || 0),
                 views: Number(document.getElementById("manual-views").value || 0),
                 note: document.getElementById("manual-note").value.trim() || null,

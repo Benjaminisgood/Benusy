@@ -70,7 +70,8 @@ def submit_assignment(
         )
 
     assignment.post_link = submission.post_link
-    assignment.status = AssignmentStatus.submitted
+    # Simplified flow: submitting the post link directly enters admin review.
+    assignment.status = AssignmentStatus.in_review
     assignment.reject_reason = None
     assignment.metric_sync_status = MetricSyncStatus.manual_required
     assignment.last_sync_error = None
@@ -111,10 +112,10 @@ def submit_manual_metrics(
     if assignment.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your assignment")
 
-    if assignment.status not in {AssignmentStatus.submitted, AssignmentStatus.in_review}:
+    if assignment.status != AssignmentStatus.in_review:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Manual metric input is only allowed after assignment submission",
+            detail="Manual metric input is only allowed after assignment enters review",
         )
 
     if assignment.metric_sync_status not in {
@@ -130,7 +131,7 @@ def submit_manual_metrics(
     submission = ManualMetricSubmission(
         assignment_id=assignment.id,
         likes=payload.likes,
-        comments=payload.comments,
+        favorites=payload.favorites,
         shares=payload.shares,
         views=payload.views,
         note=payload.note,

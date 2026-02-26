@@ -178,12 +178,10 @@ BASE_URL="http://127.0.0.1:${PORT}"
 echo "Seeding deterministic admin regression data..."
 "${PYTHON_BIN}" "${ROOT_DIR}/test/admin_console_seed.py" seed --output "${SEED_JSON}" >/dev/null
 
-PENDING_EMAIL="$(jq -r '.pending_user.email' "${SEED_JSON}")"
+PENDING_USER_ID="$(jq -r '.pending_user.id' "${SEED_JSON}")"
 DIST_TASK_ID="$(jq -r '.distribution_task.id' "${SEED_JSON}")"
 REVIEW_ASSIGNMENT_ID="$(jq -r '.review_assignment.id' "${SEED_JSON}")"
 MANUAL_SUBMISSION_ID="$(jq -r '.manual_submission.id' "${SEED_JSON}")"
-
-PENDING_EMAIL_JSON="$(printf '%s' "${PENDING_EMAIL}" | jq -Rs .)"
 
 echo "Starting temporary backend for regression on ${BASE_URL}..."
 (
@@ -210,8 +208,8 @@ echo "Running Playwright regression (admin login + 审核流 + 分配流)..."
 run_pw_code "$(cat <<JS
 async (page) => {
   await page.goto('${BASE_URL}/login', { waitUntil: 'domcontentloaded', timeout: 15000 });
-  await page.fill('#username', 'admin@example.com');
-  await page.fill('#password', 'admin123');
+  await page.fill('#username', 'yangliwei@admin');
+  await page.fill('#password', 'ilovemoney');
   await Promise.all([
     page.waitForURL('**/admin/dashboard', { timeout: 15000 }),
     page.click('button[type="submit"]'),
@@ -231,8 +229,13 @@ JS
 
 run_pw_code "$(cat <<JS
 async (page) => {
-  const email = ${PENDING_EMAIL_JSON};
-  const pendingRow = page.locator('#user-review-body tr', { hasText: email }).first();
+  const userId = String(${PENDING_USER_ID});
+  const pendingRow = page
+    .locator('#user-review-body tr')
+    .filter({
+      has: page.locator('td:first-child', { hasText: new RegExp('^' + userId + '$') }),
+    })
+    .first();
 
   await pendingRow.waitFor({ state: 'visible', timeout: 15000 });
   await pendingRow.locator('button', { hasText: '进入审核' }).click();
@@ -241,7 +244,12 @@ async (page) => {
   await page.selectOption('#user-status-filter', 'under_review');
   await page.waitForTimeout(500);
 
-  const reviewRow = page.locator('#user-review-body tr', { hasText: email }).first();
+  const reviewRow = page
+    .locator('#user-review-body tr')
+    .filter({
+      has: page.locator('td:first-child', { hasText: new RegExp('^' + userId + '$') }),
+    })
+    .first();
   await reviewRow.waitFor({ state: 'visible', timeout: 15000 });
   await reviewRow.locator('button', { hasText: '通过' }).click();
   await reviewRow.waitFor({ state: 'detached', timeout: 15000 });
@@ -252,14 +260,13 @@ JS
 run_pw_code "$(cat <<JS
 async (page) => {
   await page.goto('${BASE_URL}/admin/tasks', { waitUntil: 'domcontentloaded', timeout: 15000 });
-  await page.waitForSelector('#distribute-task-id', { timeout: 10000 });
+  await page.waitForSelector('#task-platform', { timeout: 10000 });
 }
 JS
 )"
 
 run_pw_code "$(cat <<JS
 async (page) => {
-  const taskId = String(${DIST_TASK_ID});
   page.setDefaultTimeout(10000);
 
   const waitUntil = async (predicate, errorMessage, timeoutMs = 10000) => {
@@ -271,22 +278,12 @@ async (page) => {
     throw new Error(errorMessage);
   };
 
-  await page.waitForSelector('#distribute-task-id', { timeout: 10000 });
-  await waitUntil(
-    () => page.evaluate((id) => {
-      const select = document.querySelector('#distribute-task-id');
-      if (!select) return false;
-      return Array.from(select.querySelectorAll('option')).some((option) => option.value === id);
-    }, taskId),
-    'Published task options did not load expected task ID'
-  );
-  await page.selectOption('#distribute-task-id', taskId);
-  await page.fill('#candidate-preview-limit', '1');
-
-  await page.click('#view-eligible-btn');
+  await page.waitForSelector('#task-platform', { timeout: 10000 });
+  await page.selectOption('#task-platform', 'douyin');
+  await page.fill('#task-accept-limit', '1');
   await waitUntil(
     () => page.evaluate(() => {
-      const text = document.querySelector('#task-op-result')?.textContent || '';
+      const text = document.querySelector('#task-estimate-result')?.textContent || '';
       return text.includes('候选达人总数');
     }),
     'Eligible bloggers summary did not render'
@@ -306,18 +303,15 @@ JS
 run_pw_code "$(cat <<JS
 async (page) => {
   const assignmentId = String(${REVIEW_ASSIGNMENT_ID});
-  const queueRow = page.locator('#assignment-review-body tr', { hasText: assignmentId }).first();
+  const queueRow = page
+    .locator('#assignment-review-body tr')
+    .filter({
+      has: page.locator('td:first-child', { hasText: new RegExp('^' + assignmentId + '$') }),
+    })
+    .first();
   await queueRow.waitFor({ state: 'visible', timeout: 15000 });
 
-  await queueRow.locator('button', { hasText: '进入审核' }).click();
-
-  const inReviewRow = page
-    .locator('#assignment-review-body tr', { hasText: assignmentId })
-    .filter({ hasText: '审核中' })
-    .first();
-  await inReviewRow.waitFor({ state: 'visible', timeout: 15000 });
-
-  await inReviewRow.locator('button', { hasText: '通过' }).click();
+  await queueRow.locator('button', { hasText: '通过' }).click();
   await queueRow.waitFor({ state: 'detached', timeout: 15000 });
 }
 JS

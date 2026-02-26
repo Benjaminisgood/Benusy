@@ -49,6 +49,7 @@ from app.schemas.settlement import (
     AdminSettlementOverviewRead,
     AdminSettlementUserDetailRead,
     AdminSettlementUserSummaryRead,
+    SettlementAssignmentRecordRead,
     SettlementRecordCreate,
     SettlementRecordRead,
 )
@@ -87,7 +88,7 @@ ADMIN_FORMULAS = [
     DashboardMetricFormulaRead(
         key="pending_assignment_reviews",
         label="待审任务作业",
-        definition="统计口径: status in [submitted, in_review] 的任务分配总数",
+        definition="统计口径: status=in_review 的任务分配总数",
     ),
     DashboardMetricFormulaRead(
         key="pending_manual_metric_reviews",
@@ -312,7 +313,6 @@ def get_admin_dashboard(
     assignment_stats = AdminAssignmentStatsRead(
         total=len(assignments),
         accepted=sum(1 for item in assignments if item.status == AssignmentStatus.accepted),
-        submitted=sum(1 for item in assignments if item.status == AssignmentStatus.submitted),
         in_review=sum(1 for item in assignments if item.status == AssignmentStatus.in_review),
         completed=sum(1 for item in assignments if item.status == AssignmentStatus.completed),
         rejected=sum(1 for item in assignments if item.status == AssignmentStatus.rejected),
@@ -322,7 +322,7 @@ def get_admin_dashboard(
     review_queue = AdminReviewQueueStatsRead(
         pending_users=sum(1 for user in blogger_users if user.review_status == ReviewStatus.pending),
         under_review_users=sum(1 for user in blogger_users if user.review_status == ReviewStatus.under_review),
-        pending_assignment_reviews=assignment_stats.submitted + assignment_stats.in_review,
+        pending_assignment_reviews=assignment_stats.in_review,
         pending_manual_metric_reviews=len(pending_manual_metrics),
     )
 
@@ -571,6 +571,30 @@ def get_settlement_user_detail(
         .order_by(SettlementRecord.paid_at.desc())
         .limit(100)
     ).all()
+    completed_assignments = db.exec(
+        select(Assignment)
+        .where(Assignment.user_id == user_id)
+        .where(Assignment.status == AssignmentStatus.completed)
+        .order_by(Assignment.updated_at.desc())
+        .limit(50)
+    ).all()
+    for assignment in completed_assignments:
+        _ = assignment.task
+
+    completed_records = [
+        SettlementAssignmentRecordRead(
+            assignment_id=assignment.id or 0,
+            task_id=assignment.task_id,
+            task_title=assignment.task.title if assignment.task else "未命名任务",
+            platform=assignment.task.platform if assignment.task else "unknown",
+            status=assignment.status,
+            metric_sync_status=assignment.metric_sync_status,
+            revenue=round(float(assignment.revenue or 0.0), 2),
+            post_link=assignment.post_link,
+            completed_at=assignment.updated_at,
+        )
+        for assignment in completed_assignments
+    ]
     activities = db.exec(
         select(UserActivityLog)
         .where(UserActivityLog.user_id == user_id)
@@ -582,6 +606,7 @@ def get_settlement_user_detail(
         user=user,
         payout_info=payout_info,
         summary=summary,
+        recent_completed_assignments=completed_records,
         recent_records=records,
         recent_activities=activities,
     )
@@ -1051,29 +1076,6 @@ def list_assignments(
     return assignments
 
 
-@router.post("/assignments/{assignment_id}/start-review", response_model=AssignmentRead)
-def start_assignment_review(
-    assignment_id: int,
-    db: Session = Depends(get_db),
-    current_admin: User = Depends(get_current_active_admin_user),
-) -> Assignment:
-    del current_admin
-    assignment = db.get(Assignment, assignment_id)
-    if not assignment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
-
-    if assignment.status != AssignmentStatus.submitted:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assignment is not submitted")
-
-    assignment.status = AssignmentStatus.in_review
-    assignment.updated_at = datetime.utcnow()
-    db.add(assignment)
-    db.commit()
-    db.refresh(assignment)
-    _ensure_assignment_relations_loaded(assignment)
-    return assignment
-
-
 @router.post("/assignments/{assignment_id}/approve", response_model=AssignmentRead)
 def approve_assignment(
     assignment_id: int,
@@ -1085,10 +1087,10 @@ def approve_assignment(
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
 
-    if assignment.status not in {AssignmentStatus.submitted, AssignmentStatus.in_review}:
+    if assignment.status != AssignmentStatus.in_review:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only submitted or in_review assignments can be approved",
+            detail="Only in_review assignments can be approved",
         )
     if assignment.metric_sync_status != MetricSyncStatus.manual_approved:
         raise HTTPException(
@@ -1118,10 +1120,10 @@ def reject_assignment(
     if not assignment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found")
 
-    if assignment.status not in {AssignmentStatus.submitted, AssignmentStatus.in_review}:
+    if assignment.status != AssignmentStatus.in_review:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only submitted or in_review assignments can be rejected",
+            detail="Only in_review assignments can be rejected",
         )
 
     assignment.status = AssignmentStatus.rejected
@@ -1175,12 +1177,10 @@ def review_manual_metric_submission(
             db,
             assignment,
             likes=submission.likes,
-            comments=submission.comments,
+            favorites=submission.favorites,
             shares=submission.shares,
             views=submission.views,
         )
-        if assignment.status == AssignmentStatus.submitted:
-            assignment.status = AssignmentStatus.in_review
     else:
         submission.review_status = ManualMetricReviewStatus.rejected
         assignment.metric_sync_status = MetricSyncStatus.manual_rejected
@@ -1218,7 +1218,7 @@ def upsert_platform_config(
 
     config.platform_coef = payload.platform_coef
     config.like_weight = payload.like_weight
-    config.comment_weight = payload.comment_weight
+    config.favorite_weight = payload.favorite_weight
     config.share_weight = payload.share_weight
     config.view_weight = payload.view_weight
     config.updated_at = datetime.utcnow()

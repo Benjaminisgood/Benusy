@@ -398,7 +398,6 @@ th {
 }
 
 .status.under_review,
-.status.submitted,
 .status.in_review {
     background: #e9f2ff;
     color: #1f4a8d;

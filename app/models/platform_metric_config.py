@@ -13,7 +13,7 @@ class PlatformMetricConfig(SQLModel, table=True):
     platform: str = Field(index=True, sa_column_kwargs={"unique": True})
     platform_coef: float = Field(default=1.0, gt=0)
     like_weight: float = Field(default=1.0, ge=0)
-    comment_weight: float = Field(default=2.0, ge=0)
+    favorite_weight: float = Field(default=2.0, ge=0)
     share_weight: float = Field(default=3.0, ge=0)
     view_weight: float = Field(default=0.01, ge=0)
     created_at: datetime = Field(default_factory=datetime.utcnow)

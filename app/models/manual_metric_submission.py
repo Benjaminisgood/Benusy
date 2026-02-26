@@ -17,7 +17,7 @@ class ManualMetricSubmission(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     assignment_id: int = Field(foreign_key="assignments.id", index=True)
     likes: int = Field(default=0, ge=0)
-    comments: int = Field(default=0, ge=0)
+    favorites: int = Field(default=0, ge=0)
     shares: int = Field(default=0, ge=0)
     views: int = Field(default=0, ge=0)
     note: Optional[str] = None

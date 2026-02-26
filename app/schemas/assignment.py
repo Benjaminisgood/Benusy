@@ -14,7 +14,7 @@ from app.schemas.task import TaskRead
 
 class ManualMetricSubmit(SQLModel):
     likes: int = Field(default=0, ge=0)
-    comments: int = Field(default=0, ge=0)
+    favorites: int = Field(default=0, ge=0)
     shares: int = Field(default=0, ge=0)
     views: int = Field(default=0, ge=0)
     note: Optional[str] = None
@@ -29,7 +29,7 @@ class ManualMetricSubmissionRead(SQLModel):
     id: int
     assignment_id: int
     likes: int
-    comments: int
+    favorites: int
     shares: int
     views: int
     note: Optional[str] = None

@@ -182,7 +182,6 @@ class AdminUserReviewSummaryRead(SQLModel):
 class AdminUserAssignmentStatsRead(SQLModel):
     total: int
     accepted: int
-    submitted: int
     in_review: int
     completed: int
     rejected: int

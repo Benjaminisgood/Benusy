@@ -26,7 +26,7 @@ BLOGGER_FORMULAS = [
     DashboardMetricFormulaRead(
         key="in_progress_assignments",
         label="进行中任务",
-        definition="统计口径: 当前用户 status in [accepted, submitted, in_review] 的分配数",
+        definition="统计口径: 当前用户 status in [accepted, in_review] 的分配数",
     ),
     DashboardMetricFormulaRead(
         key="completed_assignments",
@@ -72,7 +72,6 @@ def get_blogger_dashboard(
     available_tasks = db.exec(select(Task).where(Task.status == TaskStatus.published)).all()
 
     accepted_count = 0
-    submitted_count = 0
     in_review_count = 0
     completed_count = 0
     rejected_count = 0
@@ -84,8 +83,6 @@ def get_blogger_dashboard(
             total_revenue += float(assignment.revenue or 0.0)
         if assignment.status == AssignmentStatus.accepted:
             accepted_count += 1
-        elif assignment.status == AssignmentStatus.submitted:
-            submitted_count += 1
         elif assignment.status == AssignmentStatus.in_review:
             in_review_count += 1
         elif assignment.status == AssignmentStatus.completed:
@@ -95,7 +92,7 @@ def get_blogger_dashboard(
         elif assignment.status == AssignmentStatus.cancelled:
             cancelled_count += 1
 
-    in_progress_count = accepted_count + submitted_count + in_review_count
+    in_progress_count = accepted_count + in_review_count
     recent_activities = [_to_activity_row(item) for item in assignments[:10]]
 
     return BloggerDashboardRead(
@@ -106,7 +103,6 @@ def get_blogger_dashboard(
             completed_assignments=completed_count,
             total_revenue=round(total_revenue, 2),
             accepted_assignments=accepted_count,
-            submitted_assignments=submitted_count,
             in_review_assignments=in_review_count,
             rejected_assignments=rejected_count,
             cancelled_assignments=cancelled_count,

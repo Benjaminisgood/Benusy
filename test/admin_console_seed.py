@@ -15,7 +15,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from app.core.security import get_password_hash
-from app.db.database import engine
+from app.db.database import create_db_and_tables, engine
 from app.models import (
     Assignment,
     AssignmentStatus,
@@ -201,7 +201,7 @@ def _create_seed(path: Path) -> int:
             description="管理员作业审核回归任务",
             platform="douyin",
             base_reward=66.0,
-            instructions="审核 submitted -> in_review -> completed 流程",
+            instructions="审核 in_review -> completed 流程",
             attachments=[],
             status=TaskStatus.published,
         )
@@ -212,9 +212,9 @@ def _create_seed(path: Path) -> int:
         review_assignment = Assignment(
             task_id=review_task.id,
             user_id=eligible_user.id,
-            status=AssignmentStatus.submitted,
+            status=AssignmentStatus.in_review,
             post_link=f"https://example.com/{marker}/review-post",
-            metric_sync_status=MetricSyncStatus.manual_required,
+            metric_sync_status=MetricSyncStatus.manual_approved,
             revenue=0.0,
         )
         session.add(review_assignment)
@@ -249,7 +249,7 @@ def _create_seed(path: Path) -> int:
         manual_submission = ManualMetricSubmission(
             assignment_id=manual_assignment.id,
             likes=321,
-            comments=45,
+            favorites=45,
             shares=12,
             views=4567,
             note=f"{marker} manual metrics seed",
@@ -328,6 +328,7 @@ def main() -> int:
     cleanup_parser.add_argument("--input", required=True, help="Path to seed metadata JSON.")
 
     args = parser.parse_args()
+    create_db_and_tables()
 
     if args.command == "seed":
         return _create_seed(Path(args.output))
