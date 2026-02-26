@@ -1,4 +1,65 @@
 (function () {
+    const MOBILE_BREAKPOINT = 960;
+
+    function isMobileViewport() {
+        return window.innerWidth <= MOBILE_BREAKPOINT;
+    }
+
+    function setupMobileNav() {
+        const shell = document.querySelector(".admin-shell");
+        const sidebar = shell?.querySelector(".sidebar");
+        if (!shell || !sidebar) return;
+        if (shell.dataset.mobileNavReady === "true") return;
+
+        const toggle = document.createElement("button");
+        toggle.type = "button";
+        toggle.className = "admin-mobile-toggle";
+        toggle.setAttribute("aria-label", "打开导航菜单");
+        toggle.setAttribute("aria-expanded", "false");
+        toggle.innerHTML = '<i class="fas fa-bars" aria-hidden="true"></i>';
+
+        const overlay = document.createElement("div");
+        overlay.className = "admin-sidebar-overlay";
+
+        shell.appendChild(toggle);
+        shell.appendChild(overlay);
+
+        function setNavOpen(value) {
+            shell.classList.toggle("nav-open", value);
+            document.body.classList.toggle("admin-nav-open", value);
+            toggle.setAttribute("aria-expanded", value ? "true" : "false");
+        }
+
+        toggle.addEventListener("click", () => {
+            setNavOpen(!shell.classList.contains("nav-open"));
+        });
+
+        overlay.addEventListener("click", () => {
+            setNavOpen(false);
+        });
+
+        sidebar.addEventListener("click", (event) => {
+            const link = event.target.closest("a");
+            if (!link || !isMobileViewport()) return;
+            setNavOpen(false);
+        });
+
+        window.addEventListener("resize", () => {
+            if (!isMobileViewport()) {
+                setNavOpen(false);
+            }
+        });
+
+        window.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                setNavOpen(false);
+            }
+        });
+
+        setNavOpen(false);
+        shell.dataset.mobileNavReady = "true";
+    }
+
     function setNavActive() {
         const page = document.body.dataset.adminPage;
         document.querySelectorAll(".sidebar-nav a[data-nav]").forEach((link) => {
@@ -55,6 +116,7 @@
 
         setNavActive();
         bindLogout();
+        setupMobileNav();
         setLastUpdated();
         return user;
     }

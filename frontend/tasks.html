@@ -7,48 +7,22 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            height: 100vh;
-            background-color: #333;
-            color: white;
-            padding: 20px;
-        }
-        .sidebar-header { margin-bottom: 40px; }
-        .sidebar-header h2 { color: #007bff; font-size: 20px; }
-        .sidebar-nav { list-style: none; }
-        .sidebar-nav li { margin-bottom: 10px; }
-        .sidebar-nav a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .sidebar-nav a:hover { background-color: rgba(255, 255, 255, 0.1); }
-        .sidebar-nav a.active { background-color: #007bff; }
-
-        .main-content {
-            margin-left: 250px;
-            padding: 20px;
-            min-height: 100vh;
-            background-color: #f5f5f5;
-        }
-
         .tasks-container { max-width: 1200px; margin: 0 auto; }
+
         .tasks-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 24px;
             gap: 12px;
+            flex-wrap: wrap;
         }
-        .tasks-header h1 { color: #333; }
+
+        .tasks-header h1 {
+            margin: 0;
+            color: #102335;
+            font-size: clamp(28px, 3vw, 34px);
+        }
 
         .filter-container {
             display: flex;
@@ -60,22 +34,14 @@
         .filter-select,
         .search-input {
             padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            border: 1px solid #c9d9e8;
+            border-radius: 10px;
             background: white;
             font-size: 14px;
+            color: #22354b;
         }
 
-        .search-input { width: 240px; }
-
-        .alert {
-            padding: 10px 14px;
-            border-radius: 6px;
-            margin-bottom: 16px;
-            display: none;
-        }
-        .alert.error { background: #f8d7da; color: #721c24; }
-        .alert.success { background: #d4edda; color: #155724; }
+        .search-input { width: 260px; }
 
         .tasks-grid {
             display: grid;
@@ -84,42 +50,52 @@
         }
 
         .task-card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #d8e5f1;
+            box-shadow: 0 8px 22px rgba(16, 37, 57, 0.08);
         }
 
         .task-body { padding: 18px; }
+
         .task-platform {
             display: inline-block;
             padding: 4px 10px;
             border-radius: 999px;
-            background: #e3f2fd;
-            color: #1976d2;
+            background: #e6f4ff;
+            color: #1d5d8f;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 10px;
         }
-        .task-title { font-size: 18px; color: #333; margin-bottom: 8px; }
+
+        .task-title {
+            margin: 0 0 8px;
+            font-size: 19px;
+            color: #102335;
+        }
+
         .task-description {
-            color: #666;
+            color: #5f7086;
             font-size: 14px;
-            line-height: 1.5;
-            min-height: 62px;
+            line-height: 1.6;
+            min-height: 68px;
         }
 
         .task-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-top: 1px solid #f0f0f0;
+            border-top: 1px solid #e7edf4;
             padding: 12px 18px;
+            gap: 10px;
         }
-        .task-reward { font-size: 18px; font-weight: 700; color: #f57c00; }
-        .task-created { font-size: 12px; color: #777; }
-        .task-capacity { font-size: 12px; color: #1f5faa; font-weight: 600; }
+
+        .task-reward { font-size: 20px; font-weight: 800; color: #d98400; }
+        .task-created { font-size: 12px; color: #6f8196; }
+        .task-capacity { font-size: 12px; color: #1f5faa; font-weight: 700; }
         .task-capacity.full { color: #b71c1c; }
 
         .task-actions {
@@ -129,48 +105,27 @@
             padding: 14px 18px 18px;
         }
 
-        .btn {
-            padding: 9px 14px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn:disabled {
-            cursor: not-allowed;
-            opacity: 0.65;
-            transform: none;
-            box-shadow: none;
-        }
-        .btn-primary { background: #007bff; color: white; }
-        .btn-primary:hover { background: #0069d9; }
-        .btn-outline { background: white; color: #007bff; border: 1px solid #007bff; }
-        .btn-outline:hover { background: #007bff; color: white; }
-
         .empty-state {
-            background: white;
-            border-radius: 10px;
-            padding: 28px;
+            border-radius: 14px;
+            border: 1px dashed #bfd0e1;
+            padding: 32px 20px;
             text-align: center;
-            color: #666;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            color: #5f7086;
+            background: #f9fcff;
         }
 
         .modal {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.45);
+            background: rgba(7, 18, 30, 0.58);
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
+            z-index: 1600;
             padding: 16px;
         }
 
         .modal-content {
-            background: white;
-            border-radius: 10px;
             width: min(760px, 100%);
             max-height: 90vh;
             overflow: auto;
@@ -184,25 +139,32 @@
             margin-bottom: 12px;
         }
 
+        .modal-header h3 {
+            margin: 0;
+            color: #102335;
+        }
+
         .modal-close {
             border: none;
             background: none;
             font-size: 24px;
             cursor: pointer;
-            color: #666;
+            color: #66788f;
         }
 
         .detail-section {
             margin-bottom: 14px;
         }
+
         .detail-section h4 {
             margin-bottom: 6px;
-            color: #333;
-            font-size: 14px;
+            color: #102335;
+            font-size: 13px;
         }
+
         .detail-section p {
             margin: 0;
-            color: #555;
+            color: #5f7086;
             line-height: 1.6;
             white-space: pre-wrap;
         }
@@ -214,7 +176,7 @@
         }
 
         .attachment-list a {
-            color: #007bff;
+            color: #1a6ca8;
             text-decoration: none;
             word-break: break-all;
         }
@@ -223,57 +185,78 @@
             text-decoration: underline;
         }
 
-        @media (max-width: 768px) {
-            .sidebar { width: 200px; }
-            .main-content { margin-left: 200px; }
-            .tasks-header { flex-direction: column; align-items: flex-start; }
-            .search-input { width: 100%; }
+        @media (max-width: 900px) {
+            .tasks-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .search-input { width: min(100%, 400px); }
         }
 
-        @media (max-width: 480px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: static;
-            }
-            .main-content { margin-left: 0; }
+        @media (max-width: 720px) {
             .tasks-grid { grid-template-columns: 1fr; }
+
+            .filter-container {
+                width: 100%;
+            }
+
+            .filter-select,
+            .search-input {
+                width: 100%;
+            }
+
+            .task-actions {
+                flex-direction: column;
+            }
+
+            .task-actions .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
-<body>
-<div class="sidebar">
-    <div class="sidebar-header">
-        <h2>Influencer Platform</h2>
-    </div>
-    <ul class="sidebar-nav">
-        <li><a href="/dashboard"><i class="fas fa-tachometer-alt"></i>仪表盘</a></li>
-        <li><a href="/tasks" class="active"><i class="fas fa-tasks"></i>任务</a></li>
-        <li><a href="/assignments"><i class="fas fa-clipboard-list"></i>我的任务</a></li>
-        <li><a href="/profile"><i class="fas fa-user"></i>个人资料</a></li>
-        <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
-    </ul>
-</div>
+<body class="user-body">
+<div class="app-shell">
+    <button class="mobile-nav-toggle" type="button" data-nav-toggle aria-label="打开导航菜单">
+        <i class="fas fa-bars"></i>
+    </button>
 
-<div class="main-content">
-    <div class="tasks-container">
-        <div class="tasks-header">
-            <h1>可用任务</h1>
-            <div class="filter-container">
-                <select id="platform-filter" class="filter-select">
-                    <option value="all">所有平台</option>
-                    <option value="douyin">抖音</option>
-                    <option value="xiaohongshu">小红书</option>
-                    <option value="weibo">微博</option>
-                </select>
-                <input id="task-search" class="search-input" type="text" placeholder="搜索任务标题或描述">
-            </div>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Influencer Platform</h2>
         </div>
+        <ul class="sidebar-nav">
+            <li><a href="/dashboard"><i class="fas fa-tachometer-alt"></i>仪表盘</a></li>
+            <li><a href="/tasks" class="active"><i class="fas fa-tasks"></i>任务</a></li>
+            <li><a href="/assignments"><i class="fas fa-clipboard-list"></i>我的任务</a></li>
+            <li><a href="/profile"><i class="fas fa-user"></i>个人资料</a></li>
+            <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
+        </ul>
+    </aside>
 
-        <div id="alert" class="alert"></div>
-        <div id="tasks-grid" class="tasks-grid"></div>
-        <div id="empty-state" class="empty-state" style="display:none;">暂无匹配任务</div>
-    </div>
+    <div class="sidebar-overlay" data-nav-overlay></div>
+
+    <main class="main-content">
+        <div class="tasks-container">
+            <div class="tasks-header">
+                <h1>可用任务</h1>
+                <div class="filter-container">
+                    <select id="platform-filter" class="filter-select">
+                        <option value="all">所有平台</option>
+                        <option value="douyin">抖音</option>
+                        <option value="xiaohongshu">小红书</option>
+                        <option value="weibo">微博</option>
+                    </select>
+                    <input id="task-search" class="search-input" type="text" placeholder="搜索任务标题或描述">
+                </div>
+            </div>
+
+            <div id="alert" class="alert"></div>
+            <div id="tasks-grid" class="tasks-grid"></div>
+            <div id="empty-state" class="empty-state" style="display:none;">暂无匹配任务</div>
+        </div>
+    </main>
 </div>
 
 <div id="task-detail-modal" class="modal">
@@ -314,6 +297,7 @@
 </div>
 
 <script src="/static/js/client.js"></script>
+<script src="/static/js/user-layout.js"></script>
 <script>
     let allTasks = [];
     let taskAssignmentMap = new Map();

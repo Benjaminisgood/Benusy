@@ -34,6 +34,7 @@ body.admin-body {
 .admin-shell {
     display: flex;
     min-height: 100vh;
+    position: relative;
 }
 
 .sidebar {
@@ -46,6 +47,15 @@ body.admin-body {
     background: linear-gradient(165deg, #0e2738, #12324a 55%, #154a57);
     color: #f8fafc;
     border-right: 1px solid rgba(203, 213, 225, 0.18);
+}
+
+.admin-mobile-toggle,
+.admin-sidebar-overlay {
+    display: none;
+}
+
+body.admin-body.admin-nav-open {
+    overflow: hidden;
 }
 
 .sidebar-header {
@@ -941,33 +951,69 @@ body.modal-open {
 }
 
 @media (max-width: 960px) {
-    .sidebar {
-        position: static;
-        width: 100%;
-        border-right: 0;
-        border-bottom: 1px solid rgba(203, 213, 225, 0.25);
+    .admin-mobile-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        width: 44px;
+        height: 44px;
+        border: 1px solid #b9cce1;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.95);
+        color: #163f61;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.2);
+        cursor: pointer;
+        z-index: 1260;
     }
 
-    .sidebar-nav {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .admin-sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(8, 18, 30, 0.56);
+        backdrop-filter: blur(2px);
+        z-index: 1230;
+    }
+
+    .admin-shell.nav-open .admin-sidebar-overlay {
+        display: block;
+    }
+
+    .sidebar {
+        width: min(84vw, 300px);
+        transform: translateX(-108%);
+        transition: transform 0.22s ease;
+        box-shadow: 0 26px 40px rgba(6, 14, 24, 0.35);
+        z-index: 1240;
+    }
+
+    .admin-shell.nav-open .sidebar {
+        transform: translateX(0);
     }
 
     .main-content {
         margin-left: 0;
         width: 100%;
-        padding: 18px 12px 28px;
+        padding: 74px 12px 28px;
     }
 
     .page-title {
         font-size: 24px;
     }
+
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
 }
 
 @media (max-width: 680px) {
-    .sidebar-nav {
-        grid-template-columns: 1fr;
-    }
-
     .kpi-grid,
     .summary-grid,
     .quick-links,
@@ -982,5 +1028,20 @@ body.modal-open {
 
     table {
         min-width: 760px;
+    }
+
+    .admin-mobile-toggle {
+        top: 10px;
+        right: 10px;
+    }
+
+    .header-actions .btn,
+    .header-actions .meta-chip {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .meta-chip {
+        border-radius: 12px;
     }
 }

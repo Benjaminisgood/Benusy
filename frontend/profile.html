@@ -7,39 +7,6 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            height: 100vh;
-            background-color: #333;
-            color: white;
-            padding: 20px;
-        }
-        .sidebar-header { margin-bottom: 40px; }
-        .sidebar-header h2 { color: #007bff; font-size: 20px; }
-        .sidebar-nav { list-style: none; }
-        .sidebar-nav li { margin-bottom: 10px; }
-        .sidebar-nav a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .sidebar-nav a:hover { background-color: rgba(255, 255, 255, 0.1); }
-        .sidebar-nav a.active { background-color: #007bff; }
-
-        .main-content {
-            margin-left: 250px;
-            min-height: 100vh;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-
         .profile-layout {
             max-width: 1180px;
             margin: 0 auto;
@@ -49,9 +16,10 @@
         }
 
         .card {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #d8e5f1;
+            box-shadow: 0 8px 22px rgba(16, 37, 57, 0.08);
         }
 
         .user-card {
@@ -62,7 +30,7 @@
             width: 86px;
             height: 86px;
             border-radius: 50%;
-            background: #007bff;
+            background: linear-gradient(135deg, #0f9b8e, #2f79bb);
             color: white;
             display: flex;
             align-items: center;
@@ -72,9 +40,9 @@
             margin: 0 auto 12px;
         }
 
-        .user-name { text-align: center; font-size: 20px; font-weight: 700; color: #333; }
-        .user-role { text-align: center; color: #666; font-size: 14px; margin-bottom: 18px; }
-        .user-meta { font-size: 13px; color: #666; line-height: 1.8; }
+        .user-name { text-align: center; font-size: 20px; font-weight: 700; color: #102335; }
+        .user-role { text-align: center; color: #5f7086; font-size: 14px; margin-bottom: 18px; }
+        .user-meta { font-size: 13px; color: #5f7086; line-height: 1.8; }
 
         .tab-nav {
             margin-top: 18px;
@@ -84,19 +52,20 @@
 
         .tab-btn {
             width: 100%;
-            border: 1px solid #e8e8e8;
-            border-radius: 8px;
+            border: 1px solid #d4e1ee;
+            border-radius: 10px;
             background: #fff;
             text-align: left;
             padding: 10px 12px;
-            font-weight: 600;
-            color: #333;
+            font-weight: 700;
+            color: #32465c;
             cursor: pointer;
         }
         .tab-btn.active {
-            background: #e3f2fd;
-            border-color: #bbdefb;
-            color: #1565c0;
+            background: linear-gradient(135deg, #0f9b8e, #2f79bb);
+            border-color: transparent;
+            color: #ffffff;
+            box-shadow: 0 10px 22px rgba(12, 124, 114, 0.3);
         }
 
         .content-card {
@@ -106,19 +75,10 @@
         .section-title {
             margin: 0 0 14px;
             padding-bottom: 8px;
-            border-bottom: 1px solid #f0f0f0;
-            color: #333;
+            border-bottom: 1px solid #e5ecf3;
+            color: #102335;
             font-size: 20px;
         }
-
-        .alert {
-            display: none;
-            border-radius: 6px;
-            padding: 10px 14px;
-            margin-bottom: 14px;
-        }
-        .alert.error { background: #f8d7da; color: #721c24; }
-        .alert.success { background: #d4edda; color: #155724; }
 
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
@@ -130,22 +90,6 @@
         }
 
         .form-group { margin-bottom: 12px; }
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            color: #333;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            padding: 9px 10px;
-            font-size: 14px;
-        }
         .form-group textarea {
             min-height: 90px;
             resize: vertical;
@@ -157,18 +101,6 @@
             margin-top: 8px;
         }
 
-        .btn {
-            border: none;
-            border-radius: 6px;
-            padding: 9px 14px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-primary { background: #007bff; color: white; }
-        .btn-primary:hover { background: #0069d9; }
-        .btn-outline { background: #fff; color: #007bff; border: 1px solid #007bff; }
-        .btn-outline:hover { background: #007bff; color: white; }
         .btn-danger { background: #dc3545; color: white; }
         .btn-danger:hover { background: #c82333; }
 
@@ -179,8 +111,9 @@
         }
 
         .social-item {
-            border: 1px solid #efefef;
-            border-radius: 8px;
+            border: 1px solid #dbe7f2;
+            border-radius: 10px;
+            background: #f8fbff;
             padding: 12px;
             display: flex;
             justify-content: space-between;
@@ -195,12 +128,12 @@
         }
         .social-main h4 {
             margin: 0 0 6px;
-            color: #333;
+            color: #102335;
             font-size: 15px;
         }
         .social-main p {
             margin: 0;
-            color: #666;
+            color: #5f7086;
             font-size: 13px;
             line-height: 1.6;
         }
@@ -219,20 +152,21 @@
         }
 
         .history-item {
-            border: 1px solid #efefef;
-            border-radius: 8px;
+            border: 1px solid #dbe7f2;
+            border-radius: 10px;
+            background: #f8fbff;
             padding: 12px;
         }
 
         .history-item h4 {
             margin: 0 0 4px;
-            color: #333;
+            color: #102335;
             font-size: 15px;
         }
 
         .history-item p {
             margin: 0;
-            color: #666;
+            color: #5f7086;
             font-size: 13px;
             line-height: 1.6;
         }
@@ -244,12 +178,12 @@
         }
 
         .method-panel {
-            border: 1px solid #efefef;
-            border-radius: 8px;
+            border: 1px solid #dbe7f2;
+            border-radius: 10px;
             padding: 12px;
             margin-bottom: 12px;
             display: none;
-            background: #fcfcfc;
+            background: #f7fbff;
         }
 
         .method-panel.active {
@@ -258,7 +192,7 @@
 
         .method-description {
             margin: 0 0 10px;
-            color: #444;
+            color: #4e6178;
             font-size: 13px;
             line-height: 1.7;
         }
@@ -268,23 +202,24 @@
             .form-grid { grid-template-columns: 1fr; }
         }
 
-        @media (max-width: 768px) {
-            .sidebar { width: 200px; }
-            .main-content { margin-left: 200px; }
-        }
-
-        @media (max-width: 480px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: static;
+        @media (max-width: 720px) {
+            .form-actions {
+                flex-direction: column;
             }
-            .main-content { margin-left: 0; }
+
+            .form-actions .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
-<body>
-<div class="sidebar">
+<body class="user-body">
+<div class="app-shell">
+<button class="mobile-nav-toggle" type="button" data-nav-toggle aria-label="打开导航菜单">
+    <i class="fas fa-bars"></i>
+</button>
+
+<aside class="sidebar">
     <div class="sidebar-header">
         <h2>Influencer Platform</h2>
     </div>
@@ -295,9 +230,11 @@
         <li><a href="/profile" class="active"><i class="fas fa-user"></i>个人资料</a></li>
         <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
     </ul>
-</div>
+</aside>
 
-<div class="main-content">
+<div class="sidebar-overlay" data-nav-overlay></div>
+
+<main class="main-content">
     <div class="profile-layout">
         <div class="card user-card">
             <div class="avatar" id="profile-avatar">?</div>
@@ -530,9 +467,11 @@
             </section>
         </div>
     </div>
+</main>
 </div>
 
 <script src="/static/js/client.js"></script>
+<script src="/static/js/user-layout.js"></script>
 <script>
     let currentUser = null;
     let socialAccounts = [];

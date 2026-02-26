@@ -7,103 +7,40 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .login-container {
-            max-width: 400px;
-            margin: 100px auto;
-            background-color: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        .login-container h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #333;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
         .remember-row {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-bottom: 20px;
-            color: #333;
+            color: #4e6178;
             font-size: 14px;
         }
+
         .remember-row input[type="checkbox"] {
             width: auto;
             margin: 0;
             transform: scale(1.1);
         }
-        .form-group input:focus {
-            outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.1);
-        }
-        .btn {
+
+        .auth-submit {
             width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
         }
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #0069d9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-        }
-        .register-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .register-link a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .register-link a:hover {
-            text-decoration: underline;
-        }
-        .error-message {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
+
+        .error-message,
         .success-message {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+            display: none;
+            margin-bottom: 14px;
             text-align: center;
+        }
+
+        @media (max-width: 720px) {
+            .remember-row {
+                font-size: 13px;
+            }
         }
     </style>
 </head>
-<body>
-    <!-- 导航栏 -->
+<body class="auth-body">
     <nav class="navbar">
         <div class="container">
             <div class="logo">
@@ -118,13 +55,11 @@
         </div>
     </nav>
 
-    <div class="login-container">
+    <div class="auth-card narrow">
         <h1>登录</h1>
-        
-        <!-- 错误消息 -->
-        <div id="error-message" class="error-message" style="display: none;"></div>
-        
-        <!-- 登录表单 -->
+
+        <div id="error-message" class="error-message"></div>
+
         <form id="login-form" action="/api/v1/auth/token" method="post">
             <div class="form-group">
                 <label for="username">邮箱/手机号</label>
@@ -138,15 +73,14 @@
                 <input type="checkbox" id="remember_me" name="remember_me">
                 记住我（30天免登录）
             </label>
-            <button type="submit" class="btn btn-primary">登录</button>
+            <button type="submit" class="btn btn-primary auth-submit">登录</button>
         </form>
-        
-        <div class="register-link">
+
+        <div class="auth-link">
             还没有账号？ <a href="/auth/register">立即注册</a>
         </div>
     </div>
 
-    <!-- JavaScript -->
     <script src="/static/js/client.js"></script>
     <script>
         function showError(message) {

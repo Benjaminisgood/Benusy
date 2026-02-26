@@ -7,39 +7,6 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 250px;
-            height: 100vh;
-            background-color: #333;
-            color: white;
-            padding: 20px;
-        }
-        .sidebar-header { margin-bottom: 40px; }
-        .sidebar-header h2 { color: #007bff; font-size: 20px; }
-        .sidebar-nav { list-style: none; }
-        .sidebar-nav li { margin-bottom: 10px; }
-        .sidebar-nav a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .sidebar-nav a:hover { background-color: rgba(255, 255, 255, 0.1); }
-        .sidebar-nav a.active { background-color: #007bff; }
-
-        .main-content {
-            margin-left: 250px;
-            min-height: 100vh;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-
         .dashboard-container { max-width: 1200px; margin: 0 auto; }
 
         .dashboard-header {
@@ -51,21 +18,34 @@
             margin-bottom: 22px;
         }
 
+        .dashboard-title {
+            margin: 0;
+            color: #102335;
+            font-size: clamp(27px, 3vw, 34px);
+        }
+
+        .dashboard-subtitle {
+            margin: 7px 0 0;
+            color: #5a6b80;
+            font-size: 14px;
+        }
+
         .user-card {
             display: flex;
             align-items: center;
             gap: 12px;
-            background: white;
-            border-radius: 10px;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #d5e2ee;
             padding: 10px 14px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 8px 22px rgba(18, 40, 62, 0.08);
         }
 
         .avatar {
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: #007bff;
+            background: linear-gradient(135deg, #0f9b8e, #2f79bb);
             color: white;
             display: flex;
             align-items: center;
@@ -76,13 +56,13 @@
 
         .user-meta h3 {
             margin: 0;
-            color: #333;
+            color: #102335;
             font-size: 16px;
         }
 
         .user-meta p {
             margin: 2px 0 0;
-            color: #666;
+            color: #5f7086;
             font-size: 13px;
         }
 
@@ -94,33 +74,28 @@
         }
 
         .stat-card {
-            background: white;
-            border-radius: 10px;
+            background: linear-gradient(160deg, #ffffff, #f4f9ff);
+            border-radius: 12px;
+            border: 1px solid #d8e5f1;
             padding: 16px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 8px 20px rgba(16, 37, 57, 0.07);
         }
 
         .stat-title {
             margin: 0;
-            color: #666;
+            color: #5d6f84;
             font-size: 13px;
             font-weight: 600;
         }
 
         .stat-value {
             margin: 8px 0 0;
-            color: #222;
+            color: #102335;
             font-size: 28px;
             font-weight: 700;
         }
 
-        .panel {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 18px;
-            margin-bottom: 16px;
-        }
+        .panel { padding: 18px; margin-bottom: 16px; }
 
         .panel-header {
             display: flex;
@@ -133,11 +108,25 @@
 
         .panel-title {
             margin: 0;
-            color: #333;
+            color: #102335;
             font-size: 20px;
         }
 
-        .table-wrap { overflow: auto; }
+        .panel-link {
+            color: #1b6ea9;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .panel-link:hover { text-decoration: underline; }
+
+        .table-wrap {
+            overflow: auto;
+            border: 1px solid #dbe6f1;
+            border-radius: 12px;
+            background: #fff;
+        }
 
         table {
             width: 100%;
@@ -147,14 +136,14 @@
 
         th, td {
             padding: 11px 10px;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #e7edf4;
             text-align: left;
             font-size: 13px;
-            color: #333;
+            color: #23354b;
         }
 
         th {
-            color: #666;
+            color: #5f7085;
             font-weight: 700;
         }
 
@@ -183,8 +172,9 @@
         }
 
         .formula-list li {
-            border: 1px solid #efefef;
-            border-radius: 8px;
+            border: 1px solid #dce6f0;
+            border-radius: 10px;
+            background: #f9fcff;
             padding: 10px;
         }
 
@@ -192,131 +182,121 @@
             display: block;
             margin-bottom: 4px;
             font-size: 14px;
-            color: #333;
+            color: #102335;
         }
 
         .formula-list p {
             margin: 0;
             font-size: 13px;
-            color: #555;
+            color: #5f7086;
             line-height: 1.6;
         }
 
         .empty {
             text-align: center;
-            color: #777;
+            color: #5f7086;
             padding: 14px;
         }
-
-        .alert {
-            display: none;
-            border-radius: 6px;
-            padding: 10px 14px;
-            margin-bottom: 14px;
-        }
-        .alert.error { background: #f8d7da; color: #721c24; }
 
         @media (max-width: 1024px) {
             .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
 
-        @media (max-width: 768px) {
-            .sidebar { width: 200px; }
-            .main-content { margin-left: 200px; }
+        @media (max-width: 720px) {
             .stats-grid { grid-template-columns: 1fr; }
-        }
-
-        @media (max-width: 480px) {
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: static;
-            }
-            .main-content { margin-left: 0; }
         }
     </style>
 </head>
-<body>
-<div class="sidebar">
-    <div class="sidebar-header">
-        <h2>Influencer Platform</h2>
-    </div>
-    <ul class="sidebar-nav">
-        <li><a href="/dashboard" class="active"><i class="fas fa-tachometer-alt"></i>仪表盘</a></li>
-        <li><a href="/tasks"><i class="fas fa-tasks"></i>任务</a></li>
-        <li><a href="/assignments"><i class="fas fa-clipboard-list"></i>我的任务</a></li>
-        <li><a href="/profile"><i class="fas fa-user"></i>个人资料</a></li>
-        <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
-    </ul>
-</div>
+<body class="user-body">
+<div class="app-shell">
+    <button class="mobile-nav-toggle" type="button" data-nav-toggle aria-label="打开导航菜单">
+        <i class="fas fa-bars"></i>
+    </button>
 
-<div class="main-content">
-    <div class="dashboard-container">
-        <div id="alert" class="alert"></div>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>Influencer Platform</h2>
+        </div>
+        <ul class="sidebar-nav">
+            <li><a href="/dashboard" class="active"><i class="fas fa-tachometer-alt"></i>仪表盘</a></li>
+            <li><a href="/tasks"><i class="fas fa-tasks"></i>任务</a></li>
+            <li><a href="/assignments"><i class="fas fa-clipboard-list"></i>我的任务</a></li>
+            <li><a href="/profile"><i class="fas fa-user"></i>个人资料</a></li>
+            <li><a href="/login" id="logout-link"><i class="fas fa-sign-out-alt"></i>退出登录</a></li>
+        </ul>
+    </aside>
 
-        <div class="dashboard-header">
-            <div>
-                <h1 style="margin:0;color:#333;">博主仪表盘</h1>
-                <p style="margin:6px 0 0;color:#666;font-size:14px;">关键指标由后端统一计算，口径透明</p>
-            </div>
-            <div class="user-card">
-                <div class="avatar" id="current-avatar">?</div>
-                <div class="user-meta">
-                    <h3 id="current-username">-</h3>
-                    <p id="current-role">-</p>
+    <div class="sidebar-overlay" data-nav-overlay></div>
+
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div id="alert" class="alert"></div>
+
+            <div class="dashboard-header">
+                <div>
+                    <h1 class="dashboard-title">博主仪表盘</h1>
+                    <p class="dashboard-subtitle">关键指标由后端统一计算，口径透明</p>
+                </div>
+                <div class="user-card">
+                    <div class="avatar" id="current-avatar">?</div>
+                    <div class="user-meta">
+                        <h3 id="current-username">-</h3>
+                        <p id="current-role">-</p>
+                    </div>
                 </div>
             </div>
+
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <p class="stat-title">可用任务</p>
+                    <p class="stat-value" id="stat-available-tasks">0</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-title">进行中任务</p>
+                    <p class="stat-value" id="stat-in-progress">0</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-title">已完成任务</p>
+                    <p class="stat-value" id="stat-completed">0</p>
+                </div>
+                <div class="stat-card">
+                    <p class="stat-title">累计收益</p>
+                    <p class="stat-value" id="stat-total-revenue">¥0.00</p>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">最近活动</h2>
+                    <a href="/assignments" class="panel-link">查看全部</a>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>任务</th>
+                            <th>分配时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="activity-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">统计口径</h2>
+                </div>
+                <ul id="formula-list" class="formula-list"></ul>
+            </section>
         </div>
-
-        <section class="stats-grid">
-            <div class="stat-card">
-                <p class="stat-title">可用任务</p>
-                <p class="stat-value" id="stat-available-tasks">0</p>
-            </div>
-            <div class="stat-card">
-                <p class="stat-title">进行中任务</p>
-                <p class="stat-value" id="stat-in-progress">0</p>
-            </div>
-            <div class="stat-card">
-                <p class="stat-title">已完成任务</p>
-                <p class="stat-value" id="stat-completed">0</p>
-            </div>
-            <div class="stat-card">
-                <p class="stat-title">累计收益</p>
-                <p class="stat-value" id="stat-total-revenue">¥0.00</p>
-            </div>
-        </section>
-
-        <section class="panel">
-            <div class="panel-header">
-                <h2 class="panel-title">最近活动</h2>
-                <a href="/assignments" style="color:#007bff;text-decoration:none;font-size:13px;">查看全部</a>
-            </div>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                    <tr>
-                        <th>任务</th>
-                        <th>分配时间</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                    </thead>
-                    <tbody id="activity-body"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <section class="panel">
-            <div class="panel-header">
-                <h2 class="panel-title">统计口径</h2>
-            </div>
-            <ul id="formula-list" class="formula-list"></ul>
-        </section>
-    </div>
+    </main>
 </div>
 
 <script src="/static/js/client.js"></script>
+<script src="/static/js/user-layout.js"></script>
 <script>
     function showAlert(message) {
         const el = document.getElementById("alert");
@@ -344,7 +324,7 @@
                 <td>${escapeHtml(item.task_title || "-")}</td>
                 <td>${escapeHtml(formatDateTime(item.created_at))}</td>
                 <td><span class="status ${escapeHtml(item.status)}">${escapeHtml(assignmentStatusLabel(item.status))}</span></td>
-                <td><a href="/assignments" style="color:#007bff;text-decoration:none;">查看</a></td>
+                <td><a href="/assignments" class="panel-link">查看</a></td>
             </tr>
         `).join("");
     }

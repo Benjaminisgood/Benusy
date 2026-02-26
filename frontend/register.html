@@ -7,103 +7,39 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .register-container {
-            max-width: 500px;
-            margin: 80px auto;
-            background-color: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-        .register-container h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #333;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.1);
-        }
         .social-accounts {
-            margin: 30px 0;
+            margin: 24px 0;
+            padding-top: 14px;
+            border-top: 1px solid #e3ecf5;
         }
+
         .social-accounts h3 {
-            margin-bottom: 20px;
-            color: #333;
+            margin-bottom: 14px;
+            color: #102335;
+            font-size: 18px;
         }
+
         .social-account-form {
-            background-color: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+            background-color: #f7fbff;
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid #dbe7f2;
+            margin-bottom: 14px;
         }
-        .btn {
+
+        .auth-submit {
             width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
         }
-        .btn-primary {
-            background-color: #007bff;
-            color: white;
-        }
-        .btn-primary:hover {
-            background-color: #0069d9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-        }
-        .login-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .login-link a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .login-link a:hover {
-            text-decoration: underline;
-        }
-        .error-message {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
+
+        .error-message,
         .success-message {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+            display: none;
+            margin-bottom: 14px;
             text-align: center;
         }
     </style>
 </head>
-<body>
-    <!-- 导航栏 -->
+<body class="auth-body">
     <nav class="navbar">
         <div class="container">
             <div class="logo">
@@ -118,16 +54,12 @@
         </div>
     </nav>
 
-    <div class="register-container">
+    <div class="auth-card">
         <h1>注册</h1>
-        
-        <!-- 错误消息 -->
-        <div id="error-message" class="error-message" style="display: none;"></div>
-        
-        <!-- 成功消息 -->
-        <div id="success-message" class="success-message" style="display: none;"></div>
-        
-        <!-- 注册表单 -->
+
+        <div id="error-message" class="error-message"></div>
+        <div id="success-message" class="success-message"></div>
+
         <form id="register-form" action="/api/v1/auth/register" method="post">
             <div class="form-group">
                 <label for="email">邮箱</label>
@@ -163,7 +95,7 @@
                 <div class="social-account-form">
                     <div class="form-group">
                         <label for="platform">平台</label>
-                        <select id="platform" name="platform" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px;">
+                        <select id="platform" name="platform" required>
                             <option value="douyin">抖音</option>
                             <option value="xiaohongshu">小红书</option>
                             <option value="weibo">微博</option>
@@ -183,16 +115,15 @@
                     </div>
                 </div>
             </div>
-            
-            <button type="submit" class="btn btn-primary">注册</button>
+
+            <button type="submit" class="btn btn-primary auth-submit">注册</button>
         </form>
-        
-        <div class="login-link">
+
+        <div class="auth-link">
             已有账号？ <a href="/login">立即登录</a>
         </div>
     </div>
 
-    <!-- JavaScript -->
     <script>
         function detailToMessage(detail, fallback) {
             if (!detail) return fallback;
@@ -218,10 +149,10 @@
 
         document.getElementById('register-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
             const data = Object.fromEntries(formData);
-            
+
             const account = {
                 account_name: data.account_name,
                 account_id: data.account_id,
@@ -257,7 +188,7 @@
                 errorMessage.style.display = 'block';
                 return;
             }
-            
+
             fetch('/api/v1/auth/register', {
                 method: 'POST',
                 headers: {
@@ -281,10 +212,10 @@
                 const successMessage = document.getElementById('success-message');
                 successMessage.textContent = '注册成功！请等待管理员审核后登录。';
                 successMessage.style.display = 'block';
-                
+
                 // 清空表单
                 document.getElementById('register-form').reset();
-                
+
                 // 3秒后跳转到登录页
                 setTimeout(() => {
                     window.location.href = '/login';
@@ -299,6 +230,6 @@
                 errorMessage.style.display = 'block';
             });
         });
-        </script>
+    </script>
 </body>
 </html>
